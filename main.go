@@ -2,6 +2,7 @@ package main
 
 import (
 	config "library/configs"
+	"library/internal/database"
 	"library/internal/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,14 @@ import (
 func main() {
 
 	cfg := config.LoadConfig()
+
+	if err := database.ConnectDatabase(); err != nil {
+		panic(err)
+	}
+
+	if err := database.Migrate(); err != nil {
+		panic(err)
+	}
 
 	router := gin.Default()
 
