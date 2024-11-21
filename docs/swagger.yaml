@@ -1,0 +1,75 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a sample library server
+  title: Library API
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - application/json
+      description: Show the start page of the API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Show start page
+      tags:
+      - book
+  /addBooks:
+    post:
+      consumes:
+      - application/json
+      description: Add a new book to the library
+      parameters:
+      - description: Book Title
+        in: body
+        name: book
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add a new book
+      tags:
+      - book
+  /getBooks:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all books
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Get list of books
+      tags:
+      - book
+swagger: "2.0"
