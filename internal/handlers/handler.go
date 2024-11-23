@@ -6,6 +6,7 @@ import (
 	"library/internal/models"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -16,7 +17,7 @@ import (
 type AddBookRequest struct {
 	Title          string   `json:"title" binding:"required" example:"Golang Basics"`                                                                             // Название книги
 	Author         string   `json:"author" binding:"required" example:"John Doe"`                                                                                 // Автор
-	Genre          []string `json:"genre" binding:"required" example:["Учебная литература"]`                                                                      // Жанра
+	Genre          []string `json:"genre" binding:"required" example:"Учебная литература"`                                                                        // Жанра
 	Published_year string   `json:"published_year" binding:"required" example:"2024"`                                                                             // Год публикации
 	Description    string   `json:"description" example:"Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие в программировании на языке Go."` // Описание книги
 }
@@ -51,13 +52,24 @@ func Welcome(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /getBooks [get]
 func GetBooks(c *gin.Context) {
-	// Получаем все книги из БД
 	var books []models.Book
-
+	var response []struct {
+		ID            uint   `json:"id"`
+		Title         string `json:"title"`
+		Author        string `json:"author"`
+		PublishedYear string `json:"published_year"`
+		Genres        []struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		} `json:"genres"`
+	}
 	// Извлечение query-параметров
 	sortParam := c.Query("sort")
 
-	if err := database.DB.Preload("Genres").Find(&books).Error; err != nil {
+	// Получаем все книги из БД
+	if err := database.DB.Preload("Genres", func(db *gorm.DB) *gorm.DB {
+		return db.Select("genres.id, genres.name") // Выбираем только нужные поля
+	}).Find(&books).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Unable to get books",
 		})
@@ -80,10 +92,38 @@ func GetBooks(c *gin.Context) {
 		})
 	}
 
+	// Формируем ответ
+	for _, book := range books {
+		bookResponse := struct {
+			ID            uint   `json:"id"`
+			Title         string `json:"title"`
+			Author        string `json:"author"`
+			PublishedYear string `json:"published_year"`
+			Genres        []struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			} `json:"genres"`
+		}{
+			ID:            book.ID,
+			Title:         book.Title,
+			Author:        book.Author,
+			PublishedYear: book.PublishedYear,
+		}
+
+		// Формируем список жанров
+		for _, genre := range book.Genres {
+			bookResponse.Genres = append(bookResponse.Genres, struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			}{
+				ID:   genre.ID,
+				Name: genre.Name,
+			})
+		}
+		response = append(response, bookResponse)
+	}
 	// Возврат ответа
-	c.JSON(http.StatusOK, gin.H{
-		"books": books,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 // AddBook
@@ -109,6 +149,8 @@ func AddBook(c *gin.Context) {
 	// Поиск или создание жанров
 	var genres []models.Genre
 	for _, genreName := range request.Genre {
+		genreName = strings.ToLower(genreName)
+		genreName = strings.ToUpper(string(genreName[0:2])) + genreName[2:]
 		var genre models.Genre
 		// Попытка найти жанр
 		if err := database.DB.Where("name = ?", genreName).First(&genre).Error; err != nil {

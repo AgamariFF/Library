@@ -13,6 +13,8 @@ definitions:
         type: string
       genre:
         description: Жанра
+        example:
+        - Учебная литература
         items:
           type: string
         type: array

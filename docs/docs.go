@@ -220,7 +220,10 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "Учебная литература"
+                    ]
                 },
                 "published_year": {
                     "description": "Год публикации",
