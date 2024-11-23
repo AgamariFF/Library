@@ -15,7 +15,6 @@ import (
 // @description This is a sample library server
 // @host localhost:8080
 // @BasePath /
-
 func main() {
 
 	cfg := config.LoadConfig()
@@ -38,6 +37,7 @@ func main() {
 	router.GET("/", handlers.Welcome)
 	router.GET("/getBooks", handlers.GetBooks)
 	router.POST("/addBooks", handlers.AddBook)
+	router.POST("/deleteBook", handlers.DeleteBook)
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)

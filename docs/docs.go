@@ -56,15 +56,12 @@ const docTemplate = `{
                 "summary": "Add a new book",
                 "parameters": [
                     {
-                        "description": "Book Title",
+                        "description": "Book Data",
                         "name": "book",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.AddBookRequest"
                         }
                     }
                 ],
@@ -90,9 +87,73 @@ const docTemplate = `{
                 }
             }
         },
+        "/deleteBook": {
+            "post": {
+                "description": "deletes the book from the library",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "book"
+                ],
+                "summary": "Delete the book",
+                "parameters": [
+                    {
+                        "description": "Book Data",
+                        "name": "book",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.DeleteBookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/getBooks": {
             "get": {
-                "description": "Retrieve all books",
+                "description": "Retrieve all books, optionally sorted by a specific field",
                 "consumes": [
                     "application/json"
                 ],
@@ -103,16 +164,125 @@ const docTemplate = `{
                     "book"
                 ],
                 "summary": "Get list of books",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Field to sort by (e.g., 'id')",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
+                                "$ref": "#/definitions/models.Book"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
                                 "type": "string"
                             }
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.AddBookRequest": {
+            "type": "object",
+            "required": [
+                "author",
+                "genre",
+                "published_year",
+                "title"
+            ],
+            "properties": {
+                "author": {
+                    "description": "Автор",
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "description": {
+                    "description": "Описание книги",
+                    "type": "string",
+                    "example": "Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие в программировании на языке Go."
+                },
+                "genre": {
+                    "description": "Жанра",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "published_year": {
+                    "description": "Год публикации",
+                    "type": "string",
+                    "example": "2024"
+                },
+                "title": {
+                    "description": "Название книги",
+                    "type": "string",
+                    "example": "Golang Basics"
+                }
+            }
+        },
+        "handlers.DeleteBookRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.Book": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Genre"
+                    }
+                },
+                "publishedYear": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Genre": {
+            "type": "object",
+            "properties": {
+                "books": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Book"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         }

@@ -1,4 +1,69 @@
 basePath: /
+definitions:
+  handlers.AddBookRequest:
+    properties:
+      author:
+        description: Автор
+        example: John Doe
+        type: string
+      description:
+        description: Описание книги
+        example: Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие
+          в программировании на языке Go.
+        type: string
+      genre:
+        description: Жанра
+        items:
+          type: string
+        type: array
+      published_year:
+        description: Год публикации
+        example: "2024"
+        type: string
+      title:
+        description: Название книги
+        example: Golang Basics
+        type: string
+    required:
+    - author
+    - genre
+    - published_year
+    - title
+    type: object
+  handlers.DeleteBookRequest:
+    properties:
+      id:
+        example: 1
+        type: integer
+    required:
+    - id
+    type: object
+  models.Book:
+    properties:
+      author:
+        type: string
+      description:
+        type: string
+      genres:
+        items:
+          $ref: '#/definitions/models.Genre'
+        type: array
+      publishedYear:
+        type: string
+      title:
+        type: string
+    type: object
+  models.Genre:
+    properties:
+      books:
+        items:
+          $ref: '#/definitions/models.Book'
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -29,14 +94,12 @@ paths:
       - application/json
       description: Add a new book to the library
       parameters:
-      - description: Book Title
+      - description: Book Data
         in: body
         name: book
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/handlers.AddBookRequest'
       produces:
       - application/json
       responses:
@@ -55,11 +118,58 @@ paths:
       summary: Add a new book
       tags:
       - book
+  /deleteBook:
+    post:
+      consumes:
+      - application/json
+      description: deletes the book from the library
+      parameters:
+      - description: Book Data
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.DeleteBookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete the book
+      tags:
+      - book
   /getBooks:
     get:
       consumes:
       - application/json
-      description: Retrieve all books
+      description: Retrieve all books, optionally sorted by a specific field
+      parameters:
+      - description: Field to sort by (e.g., 'id')
+        in: query
+        name: sort
+        type: string
       produces:
       - application/json
       responses:
@@ -67,8 +177,14 @@ paths:
           description: OK
           schema:
             items:
-              type: string
+              $ref: '#/definitions/models.Book'
             type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Get list of books
       tags:
       - book
