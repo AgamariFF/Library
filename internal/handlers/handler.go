@@ -23,6 +23,7 @@ type AddBookRequest struct {
 }
 
 // DeleteBookRequest структура запроса для удаления книги
+// @Schema example={"id": "1"}
 type DeleteBookRequest struct {
 	ID uint `json:"id" example:"1" binding:"required"`
 }
@@ -124,6 +125,51 @@ func GetBooks(c *gin.Context) {
 	}
 	// Возврат ответа
 	c.JSON(http.StatusOK, response)
+}
+
+// GetBook возвращает информацию об одной книге
+// @Summary      Get one book
+// @Description  Get detailed information about a single book by ID
+// @Tags         book
+// @Accept       json
+// @Produce      json
+// @Param        bookId  query    integer  true  "Book ID"
+// @Success      200     {object} models.Book
+// @Failure      400     {object} map[string]string
+// @Failure      404     {object} map[string]string
+// @Failure      500     {object} map[string]string
+// @Router       /getBook [get]
+func GetBook(c *gin.Context) {
+	var book models.Book
+
+	// Получение ID книги из query-параметра
+	bookId := c.Query("bookId")
+	if bookId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Missing bookId parameter",
+		})
+		return
+	}
+
+	// Поиск книги в базе данных
+	if err := database.DB.Where("id = ?", bookId).First(&book).Error; err != nil {
+		// Если книга не найдена
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Book not found",
+			})
+			return
+		}
+
+		// Если произошла другая ошибка
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Unable to get book",
+		})
+		return
+	}
+
+	// Успешный ответ
+	c.JSON(http.StatusOK, book)
 }
 
 // AddBook

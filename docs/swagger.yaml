@@ -162,6 +162,45 @@ paths:
       summary: Delete the book
       tags:
       - book
+  /getBook:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a single book by ID
+      parameters:
+      - description: Book ID
+        in: query
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Book'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get one book
+      tags:
+      - book
   /getBooks:
     get:
       consumes:
