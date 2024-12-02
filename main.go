@@ -38,7 +38,7 @@ func main() {
 	router.GET("/getBooks", handlers.GetBooks)
 	router.POST("/addBooks", handlers.AddBook)
 	router.POST("/deleteBook", handlers.DeleteBook)
-	router.POST("/getBook", handlers.GetBook)
+	router.GET("/getBook", handlers.GetBook)
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)
