@@ -252,6 +252,33 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/modifyingBook": {
+            "post": {
+                "description": "Modifies the data of an existing workbook",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "book"
+                ],
+                "summary": "Modifying book",
+                "parameters": [
+                    {
+                        "description": "Modifying book",
+                        "name": "book",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ModifyingBookRequest"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
         }
     },
     "definitions": {
@@ -305,6 +332,23 @@ const docTemplate = `{
                 "id": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "handlers.ModifyingBookRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "published_year": {
+                    "description": "Год публикации",
+                    "type": "string",
+                    "example": "2021"
                 }
             }
         },

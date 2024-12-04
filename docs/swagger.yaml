@@ -40,6 +40,18 @@ definitions:
     required:
     - id
     type: object
+  handlers.ModifyingBookRequest:
+    properties:
+      id:
+        example: 1
+        type: integer
+      published_year:
+        description: Год публикации
+        example: "2021"
+        type: string
+    required:
+    - id
+    type: object
   models.Book:
     properties:
       author:
@@ -227,6 +239,24 @@ paths:
               type: string
             type: object
       summary: Get list of books
+      tags:
+      - book
+  /modifyingBook:
+    post:
+      consumes:
+      - application/json
+      description: Modifies the data of an existing workbook
+      parameters:
+      - description: Modifying book
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ModifyingBookRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: Modifying book
       tags:
       - book
 swagger: "2.0"

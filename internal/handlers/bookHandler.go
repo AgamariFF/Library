@@ -22,8 +22,19 @@ type AddBookRequest struct {
 	Description    string   `json:"description" example:"Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие в программировании на языке Go."` // Описание книги
 }
 
+// ModifyingBookRequest структура запроса для добавления книги
+// @Schema example={"id": 1, "published_year": "2024"}
+type ModifyingBookRequest struct {
+	Id             uint     `json:"id" binding:"required" example:"1"`
+	Title          string   `json:"title" swaggerignore:"true"`       // Название книги
+	Author         string   `json:"author" swaggerignore:"true"`      // Автор
+	Genre          []string `json:"genre" swaggerignore:"true"`       // Жанра
+	Published_year string   `json:"published_year" example:"2021"`    // Год публикации
+	Description    string   `json:"description" swaggerignore:"true"` // Описание книги
+}
+
 // DeleteBookRequest структура запроса для удаления книги
-// @Schema example={"id": "1"}
+// @Schema example={"id": 1}
 type DeleteBookRequest struct {
 	ID uint `json:"id" example:"1" binding:"required"`
 }
@@ -243,7 +254,7 @@ func AddBook(c *gin.Context) {
 // @Tags         book
 // @Accept       json
 // @Produce      json
-// @Param        book  body  DeleteBookRequest  true  "Book Data"  example({"id": "1"})
+// @Param        book  body  DeleteBookRequest  true  "Book Data"  example({"id": 1})
 // @Success      200  {object}  map[string]string
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
@@ -286,4 +297,87 @@ func DeleteBook(c *gin.Context) {
 		"Title":   book.Title,
 	})
 
+}
+
+// Modifying book
+// @Summary      Modifying book
+// @Description  Modifies the data of an existing workbook
+// @Tags         book
+// @Accept       json
+// @Produce      json
+// @Param        book  body  ModifyingBookRequest  true  "Modifying book"  example({"id: "1", "published_year": "2021"})
+// @Router       /modifyingBook [post]
+func ModifyingBook(c *gin.Context) {
+	// Структура для запроса
+	var request ModifyingBookRequest
+	var book models.Book
+
+	// Проверка на корректность данных запроса
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := database.DB.Where("id = ?", request.Id).First(&book).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Book not found",
+			})
+			return
+		}
+	}
+
+	var genres []models.Genre
+	if len(request.Genre) != 0 {
+		// Поиск или создание жанров
+		for _, genreName := range request.Genre {
+			genreName = strings.ToLower(genreName)
+			genreName = strings.ToUpper(string(genreName[0:2])) + genreName[2:]
+			var genre models.Genre
+			// Попытка найти жанр
+			if err := database.DB.Where("name = ?", genreName).First(&genre).Error; err != nil {
+				// Если жанр не найден, создаем новый
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					genre = models.Genre{Name: genreName}
+					if err := database.DB.Create(&genre).Error; err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+						return
+					}
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve genre"})
+					return
+				}
+			}
+			genres = append(genres, genre)
+		}
+	}
+
+	if request.Title != "" {
+		book.Title = request.Title
+	}
+	if request.Published_year != "" {
+		book.PublishedYear = request.Published_year
+	}
+	if request.Author != "" {
+		book.Author = request.Author
+	}
+	if request.Description != "" {
+		book.Description = request.Description
+	}
+	if len(request.Genre) > 0 {
+		book.Genres = genres
+	}
+
+	// Загрузка измененной книги
+	if err := database.DB.Save(&book).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err,
+		})
+	}
+
+	// Успешный ответ
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Book added successully!",
+		"title":   request.Title,
+	})
 }

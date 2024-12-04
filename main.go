@@ -39,6 +39,7 @@ func main() {
 	router.POST("/addBooks", handlers.AddBook)
 	router.POST("/deleteBook", handlers.DeleteBook)
 	router.GET("/getBook", handlers.GetBook)
+	router.POST("/modifyingBook", handlers.ModifyingBook)
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)
