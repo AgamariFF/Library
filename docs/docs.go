@@ -43,7 +43,12 @@ const docTemplate = `{
         },
         "/addBooks": {
             "post": {
-                "description": "Add a new book to the library",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new book to the library\nJWT Bearer authentcation only admin",
                 "consumes": [
                     "application/json"
                 ],
@@ -89,7 +94,12 @@ const docTemplate = `{
         },
         "/deleteBook": {
             "post": {
-                "description": "deletes the book from the library",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "deletes the book from the library\nJWT Bearer authentcation only admin",
                 "consumes": [
                     "application/json"
                 ],
@@ -153,7 +163,12 @@ const docTemplate = `{
         },
         "/getBook": {
             "get": {
-                "description": "Get detailed information about a single book by ID",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "JWT Bearer authentcation\nGet detailed information about a single book by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -253,9 +268,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/login": {
+            "post": {
+                "description": "Logs in an existing user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Performs user login",
+                "parameters": [
+                    {
+                        "description": "User Data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/modifyingBook": {
             "post": {
-                "description": "Modifies the data of an existing workbook",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Modifies the data of an existing workbook\nJWT Bearer authentcation only admin",
                 "consumes": [
                     "application/json"
                 ],
@@ -278,6 +335,43 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {}
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "Add a new library User",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Add a new User",
+                "parameters": [
+                    {
+                        "description": "User Data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RegisterUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         }
     },
@@ -335,6 +429,22 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "123456"
+                }
+            }
+        },
         "handlers.ModifyingBookRequest": {
             "type": "object",
             "required": [
@@ -349,6 +459,29 @@ const docTemplate = `{
                     "description": "Год публикации",
                     "type": "string",
                     "example": "2021"
+                }
+            }
+        },
+        "handlers.RegisterUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "Laminano@mail.ru"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Vladislav"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "123456"
                 }
             }
         },
@@ -392,14 +525,21 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Library API",
 	Description:      "This is a sample library server",

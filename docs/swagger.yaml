@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   handlers.AddBookRequest:
     properties:
@@ -40,6 +39,17 @@ definitions:
     required:
     - id
     type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        example: "123456"
+        type: string
+    required:
+    - email
+    - password
+    type: object
   handlers.ModifyingBookRequest:
     properties:
       id:
@@ -51,6 +61,23 @@ definitions:
         type: string
     required:
     - id
+    type: object
+  handlers.RegisterUserRequest:
+    properties:
+      email:
+        example: Laminano@mail.ru
+        type: string
+      name:
+        example: Vladislav
+        type: string
+      password:
+        example: "123456"
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
     type: object
   models.Book:
     properties:
@@ -78,7 +105,6 @@ definitions:
       name:
         type: string
     type: object
-host: localhost:8080
 info:
   contact: {}
   description: This is a sample library server
@@ -106,7 +132,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Add a new book to the library
+      description: |-
+        Add a new book to the library
+        JWT Bearer authentcation only admin
       parameters:
       - description: Book Data
         in: body
@@ -129,6 +157,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Add a new book
       tags:
       - book
@@ -136,7 +166,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: deletes the book from the library
+      description: |-
+        deletes the book from the library
+        JWT Bearer authentcation only admin
       parameters:
       - description: Book Data
         in: body
@@ -171,6 +203,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete the book
       tags:
       - book
@@ -178,7 +212,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get detailed information about a single book by ID
+      description: |-
+        JWT Bearer authentcation
+        Get detailed information about a single book by ID
       parameters:
       - description: Book ID
         in: query
@@ -210,6 +246,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get one book
       tags:
       - book
@@ -241,11 +279,37 @@ paths:
       summary: Get list of books
       tags:
       - book
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in an existing user
+      parameters:
+      - description: User Data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Performs user login
+      tags:
+      - user
   /modifyingBook:
     post:
       consumes:
       - application/json
-      description: Modifies the data of an existing workbook
+      description: |-
+        Modifies the data of an existing workbook
+        JWT Bearer authentcation only admin
       parameters:
       - description: Modifying book
         in: body
@@ -256,7 +320,38 @@ paths:
       produces:
       - application/json
       responses: {}
+      security:
+      - BearerAuth: []
       summary: Modifying book
       tags:
       - book
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Add a new library User
+      parameters:
+      - description: User Data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add a new User
+      tags:
+      - user
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

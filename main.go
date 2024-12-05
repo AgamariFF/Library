@@ -2,8 +2,10 @@ package main
 
 import (
 	config "library/configs"
+	_ "library/docs"
 	"library/internal/database"
 	"library/internal/handlers"
+	"library/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -13,6 +15,9 @@ import (
 // @title Library API
 // @version 1.0
 // @description This is a sample library server
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 // @host localhost:8080
 // @BasePath /
 func main() {
@@ -30,16 +35,17 @@ func main() {
 	router := gin.Default()
 
 	router.Static("/docs", "./docs")
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("http://localhost:8080/docs/swagger.json")))
-
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.StaticFile("/favicon.ico", "./static/favicon.ico")
 
 	router.GET("/", handlers.Welcome)
 	router.GET("/getBooks", handlers.GetBooks)
-	router.POST("/addBooks", handlers.AddBook)
-	router.POST("/deleteBook", handlers.DeleteBook)
-	router.GET("/getBook", handlers.GetBook)
-	router.POST("/modifyingBook", handlers.ModifyingBook)
+	router.POST("/addBooks", middleware.RoleMiddleware("admin"), handlers.AddBook)
+	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook)
+	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook)
+	router.POST("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook)
+	router.POST("/register", handlers.RegisterUser)
+	router.POST("/login", handlers.LoginUser)
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)
