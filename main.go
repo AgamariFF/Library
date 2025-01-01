@@ -42,10 +42,10 @@ func main() {
 	router.GET("/getBooks", handlers.GetBooks)
 	router.POST("/addBooks", middleware.RoleMiddleware("admin"), handlers.AddBook)
 	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook)
-	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook)
+	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
 	router.POST("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook)
-	router.POST("/register", handlers.RegisterUser)
-	router.POST("/login", handlers.LoginUser)
+	router.POST("/register", handlers.RegisterUser(database.DB))
+	router.POST("/login", handlers.LoginUser(database.DB))
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)

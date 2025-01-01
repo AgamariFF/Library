@@ -152,37 +152,39 @@ func GetBooks(c *gin.Context) {
 // @Failure      500     {object} map[string]string
 // @Security BearerAuth
 // @Router       /getBook [get]
-func GetBook(c *gin.Context) {
-	var book models.Book
+func GetBook(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var book models.Book
 
-	// Получение ID книги из query-параметра
-	bookId := c.Query("bookId")
-	if bookId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Missing bookId parameter",
-		})
-		return
-	}
-
-	// Поиск книги в базе данных
-	if err := database.DB.Where("id = ?", bookId).First(&book).Error; err != nil {
-		// Если книга не найдена
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Book not found",
+		// Получение ID книги из query-параметра
+		bookId := c.Query("bookId")
+		if bookId == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Missing bookId parameter",
 			})
 			return
 		}
 
-		// Если произошла другая ошибка
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Unable to get book",
-		})
-		return
-	}
+		// Поиск книги в базе данных
+		if err := db.Where("id = ?", bookId).First(&book).Error; err != nil {
+			// Если книга не найдена
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "Book not found",
+				})
+				return
+			}
 
-	// Успешный ответ
-	c.JSON(http.StatusOK, book)
+			// Если произошла другая ошибка
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Unable to get book",
+			})
+			return
+		}
+
+		// Успешный ответ
+		c.JSON(http.StatusOK, book)
+	}
 }
 
 // AddBook

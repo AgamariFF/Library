@@ -15,6 +15,8 @@ func TestCreateTestData(t *testing.T) {
 	database.InitTestDB()
 	defer database.CleanupTestDB()
 
+	db := database.TestDB
+
 	// Тестовые данные
 	book := models.Book{
 		Title:         "Test Book",
@@ -27,10 +29,12 @@ func TestCreateTestData(t *testing.T) {
 	}
 
 	// Создание книги
-	err := database.DB.Create(&book).Error
+	err := db.Create(&book).Error
 	assert.NoError(t, err)
+
 	var result models.Book
-	err = database.TestDB.Preload("Genres").First(&result).Error
+	err = db.Preload("Genres").First(&result).Error
+
 	assert.NoError(t, err)
 	assert.Equal(t, "Test Book", result.Title)
 	assert.Equal(t, "Test Author", result.Author)
@@ -49,7 +53,7 @@ func clearDB(db *gorm.DB) {
 	db.Exec("DELETE FROM GENRES")
 }
 
-func TestBookCreation(t *testing.T) {
+func TestCreateBook(t *testing.T) {
 	db := setupTestDB()
 	defer clearDB(db)
 
@@ -60,8 +64,10 @@ func TestBookCreation(t *testing.T) {
 
 	err := db.Create(&book).Error
 	assert.NoError(t, err)
-	var result models.Book
-	db.First(&result, "title = ?", "Test Book")
 
-	assert.Equal(t, "Test Book", result.Author)
+	var result models.Book
+	err = db.First(&result, "title = ?", "Test book").Error
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Test Author", result.Author)
 }

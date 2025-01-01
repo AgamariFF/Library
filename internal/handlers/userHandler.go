@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"library/internal/auth"
-	"library/internal/database"
 	"library/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // RegisterUserRequest структура запроса для регистрации пользователя
@@ -39,30 +39,32 @@ type TokenResponse struct {
 // @Param        user  body  RegisterUserRequest  true  "User Data" example({"name": "Vladislav", "email": "Laminano@mail.ru", "password":"123456"})
 // @Success 201 {object} map[string]string
 // @Router       /register [post]
-func RegisterUser(c *gin.Context) {
-	var request RegisterUserRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func RegisterUser(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var request RegisterUserRequest
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		hasher := sha256.New()
+		hasher.Write([]byte(request.Password))
+		hasherPassword := hex.EncodeToString(hasher.Sum(nil))
+
+		user := models.User{
+			Name:     request.Name,
+			Email:    request.Email,
+			Password: hasherPassword,
+			Role:     "reader",
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"message": "User registred successfully"})
 	}
-
-	hasher := sha256.New()
-	hasher.Write([]byte(request.Password))
-	hasherPassword := hex.EncodeToString(hasher.Sum(nil))
-
-	user := models.User{
-		Name:     request.Name,
-		Email:    request.Email,
-		Password: hasherPassword,
-		Role:     "reader",
-	}
-
-	if err := database.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "User registred successfully"})
 }
 
 // LoginUser
@@ -74,35 +76,37 @@ func RegisterUser(c *gin.Context) {
 // @Param        user  body  LoginRequest  true  "User Data" example({"email": "Laminano@mail.ru", "password":"123456"})
 // @Success 201 {object} map[string]string
 // @Router       /login [post]
-func LoginUser(c *gin.Context) {
-	var request LoginRequest
+func LoginUser(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var request LoginRequest
 
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
-		return
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err,
+			})
+			return
+		}
+
+		var User models.User
+		if err := db.Where("email = ?", request.Email).First(&User).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err})
+			return
+		}
+
+		hasher := sha256.New()
+		hasher.Write([]byte(request.Password))
+		hasherPassword := hex.EncodeToString(hasher.Sum(nil))
+		if hasherPassword != User.Password {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+			return
+		}
+
+		token, err := auth.GenerateJWT(User)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
+
+		c.JSON(http.StatusOK, token)
 	}
-
-	var User models.User
-	if err := database.DB.Where("email = ?", request.Email).First(&User).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err})
-		return
-	}
-
-	hasher := sha256.New()
-	hasher.Write([]byte(request.Password))
-	hasherPassword := hex.EncodeToString(hasher.Sum(nil))
-	if hasherPassword != User.Password {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
-		return
-	}
-
-	token, err := auth.GenerateJWT(User)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		return
-	}
-
-	c.JSON(http.StatusOK, token)
 }
