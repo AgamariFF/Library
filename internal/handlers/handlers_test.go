@@ -220,3 +220,86 @@ func TestGetBook(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, `{"error":"Missing bookId parameter"}`, recorder.Body.String())
 }
+
+func TestAddBook(t *testing.T) {
+	database.InitTestDB()
+	db := database.TestDB
+	defer database.CleanupTestDB()
+	router := gin.Default()
+	router.POST("/addBook", handlers.AddBook(db))
+
+	book := `{
+  "author": "John Doe",
+  "description": "Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие в программировании на языке Go.",
+  "genre": [
+    "Учебная литература"
+  ],
+  "published_year": "2024",
+  "title": "Golang Basics"
+}`
+
+	req, err := http.NewRequest(http.MethodPost, "/addBook", bytes.NewBuffer([]byte(book)))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusCreated, recorder.Code)
+
+	var gettedBook models.Book
+	err = db.Where("title = ?", "Golang Basics").First(&gettedBook).Error
+	assert.NoError(t, err)
+
+	assert.Equal(t, "John Doe", gettedBook.Author)
+	assert.Equal(t, "Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие в программировании на языке Go.", gettedBook.Description)
+	assert.Equal(t, "2024", gettedBook.PublishedYear)
+	assert.Equal(t, "Golang Basics", gettedBook.Title)
+}
+
+// func TestGetBooks(t *testing.T) {
+// 	database.InitTestDB()
+// 	db := database.TestDB
+// 	defer database.CleanupTestDB()
+
+// 	book := models.Book{
+// 		Title:         "Beta title",
+// 		Author:        "Alpha author",
+// 		PublishedYear: "2021",
+// 		Description:   "Test description1",
+// 	}
+
+// 	err := db.Create(&book).Error
+// 	assert.NoError(t, err)
+
+// 	book = models.Book{
+// 		Title:         "Alpha title",
+// 		Author:        "Charlie author",
+// 		PublishedYear: "2023",
+// 		Description:   "Test description2",
+// 	}
+
+// 	err = db.Create(&book).Error
+// 	assert.NoError(t, err)
+
+// 	book = models.Book{
+// 		Title:         "Charlie title",
+// 		Author:        "Beta author",
+// 		PublishedYear: "2025",
+// 		Description:   "Test description3",
+// 	}
+
+// 	err = db.Create(&book).Error
+// 	assert.NoError(t, err)
+
+// 	router := gin.Default()
+// 	router.GET("/getBooks", handlers.GetBook(db))
+
+// 	req, err := http.NewRequest(http.MethodGet, "/getBooks", nil)
+// 	assert.NoError(t, err)
+
+// 	recorder := httptest.NewRecorder()
+// 	router.ServeHTTP(recorder, req)
+
+// 	assert.Equal(t, http.StatusOK, recorder.Code)
+// }

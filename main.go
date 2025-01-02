@@ -39,8 +39,8 @@ func main() {
 	router.StaticFile("/favicon.ico", "./static/favicon.ico")
 
 	router.GET("/", handlers.Welcome)
-	router.GET("/getBooks", handlers.GetBooks)
-	router.POST("/addBooks", middleware.RoleMiddleware("admin"), handlers.AddBook)
+	router.GET("/getBooks", handlers.GetBooks(database.DB))
+	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB))
 	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook)
 	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
 	router.POST("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook)

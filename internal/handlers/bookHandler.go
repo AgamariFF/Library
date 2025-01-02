@@ -63,50 +63,10 @@ func Welcome(c *gin.Context) {
 // @Success 200 {array} models.Book
 // @Failure 500 {object} map[string]string
 // @Router /getBooks [get]
-func GetBooks(c *gin.Context) {
-	var books []models.Book
-	var response []struct {
-		ID            uint   `json:"id"`
-		Title         string `json:"title"`
-		Author        string `json:"author"`
-		PublishedYear string `json:"published_year"`
-		Genres        []struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
-		} `json:"genres"`
-	}
-	// Извлечение query-параметров
-	sortParam := c.Query("sort")
-
-	// Получаем все книги из БД
-	if err := database.DB.Preload("Genres", func(db *gorm.DB) *gorm.DB {
-		return db.Select("genres.id, genres.name") // Выбираем только нужные поля
-	}).Find(&books).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Unable to get books",
-		})
-		return
-	}
-
-	// Сортируем книги
-	switch sortParam {
-	case "author":
-		sort.Slice(books, func(i, j int) bool {
-			return books[i].Author < books[j].Author
-		})
-	case "title":
-		sort.Slice(books, func(i, j int) bool {
-			return books[i].Title < books[j].Title
-		})
-	case "year":
-		sort.Slice(books, func(i, j int) bool {
-			return books[i].PublishedYear < books[j].PublishedYear
-		})
-	}
-
-	// Формируем ответ
-	for _, book := range books {
-		bookResponse := struct {
+func GetBooks(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var books []models.Book
+		var response []struct {
 			ID            uint   `json:"id"`
 			Title         string `json:"title"`
 			Author        string `json:"author"`
@@ -115,27 +75,69 @@ func GetBooks(c *gin.Context) {
 				ID   uint   `json:"id"`
 				Name string `json:"name"`
 			} `json:"genres"`
-		}{
-			ID:            book.ID,
-			Title:         book.Title,
-			Author:        book.Author,
-			PublishedYear: book.PublishedYear,
+		}
+		// Извлечение query-параметров
+		sortParam := c.Query("sort")
+
+		// Получаем все книги из БД
+		if err := database.DB.Preload("Genres", func(db *gorm.DB) *gorm.DB {
+			return db.Select("genres.id, genres.name") // Выбираем только нужные поля
+		}).Find(&books).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Unable to get books",
+			})
+			return
 		}
 
-		// Формируем список жанров
-		for _, genre := range book.Genres {
-			bookResponse.Genres = append(bookResponse.Genres, struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
-			}{
-				ID:   genre.ID,
-				Name: genre.Name,
+		// Сортируем книги
+		switch sortParam {
+		case "author":
+			sort.Slice(books, func(i, j int) bool {
+				return books[i].Author < books[j].Author
+			})
+		case "title":
+			sort.Slice(books, func(i, j int) bool {
+				return books[i].Title < books[j].Title
+			})
+		case "year":
+			sort.Slice(books, func(i, j int) bool {
+				return books[i].PublishedYear < books[j].PublishedYear
 			})
 		}
-		response = append(response, bookResponse)
+
+		// Формируем ответ
+		for _, book := range books {
+			bookResponse := struct {
+				ID            uint   `json:"id"`
+				Title         string `json:"title"`
+				Author        string `json:"author"`
+				PublishedYear string `json:"published_year"`
+				Genres        []struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				} `json:"genres"`
+			}{
+				ID:            book.ID,
+				Title:         book.Title,
+				Author:        book.Author,
+				PublishedYear: book.PublishedYear,
+			}
+
+			// Формируем список жанров
+			for _, genre := range book.Genres {
+				bookResponse.Genres = append(bookResponse.Genres, struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				}{
+					ID:   genre.ID,
+					Name: genre.Name,
+				})
+			}
+			response = append(response, bookResponse)
+		}
+		// Возврат ответа
+		c.JSON(http.StatusOK, response)
 	}
-	// Возврат ответа
-	c.JSON(http.StatusOK, response)
 }
 
 // GetBook возвращает информацию об одной книге
@@ -198,60 +200,62 @@ func GetBook(db *gorm.DB) gin.HandlerFunc {
 // @Success      201  {object}  map[string]string
 // @Failure      400  {object}  map[string]string
 // @Security BearerAuth
-// @Router       /addBooks [post]
-func AddBook(c *gin.Context) {
-	// Структура для запроса
-	var request AddBookRequest
+// @Router       /addBook [post]
+func AddBook(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Структура для запроса
+		var request AddBookRequest
 
-	// Проверка на корректность данных запроса
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+		// Проверка на корректность данных запроса
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	// Поиск или создание жанров
-	var genres []models.Genre
-	for _, genreName := range request.Genre {
-		genreName = strings.ToLower(genreName)
-		genreName = strings.ToUpper(string(genreName[0:2])) + genreName[2:]
-		var genre models.Genre
-		// Попытка найти жанр
-		if err := database.DB.Where("name = ?", genreName).First(&genre).Error; err != nil {
-			// Если жанр не найден, создаем новый
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				genre = models.Genre{Name: genreName}
-				if err := database.DB.Create(&genre).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+		// Поиск или создание жанров
+		var genres []models.Genre
+		for _, genreName := range request.Genre {
+			genreName = strings.ToLower(genreName)
+			genreName = strings.ToUpper(string(genreName[0:2])) + genreName[2:]
+			var genre models.Genre
+			// Попытка найти жанр
+			if err := db.Where("name = ?", genreName).First(&genre).Error; err != nil {
+				// Если жанр не найден, создаем новый
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					genre = models.Genre{Name: genreName}
+					if err := db.Create(&genre).Error; err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+						return
+					}
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve genre"})
 					return
 				}
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve genre"})
-				return
 			}
+			genres = append(genres, genre)
 		}
-		genres = append(genres, genre)
-	}
 
-	// Создание экземпляра книги на основе данных запроса
-	book := models.Book{
-		Title:         request.Title,
-		Author:        request.Author,
-		PublishedYear: request.Published_year,
-		Genres:        genres,
-		Description:   request.Description,
-	}
+		// Создание экземпляра книги на основе данных запроса
+		book := models.Book{
+			Title:         request.Title,
+			Author:        request.Author,
+			PublishedYear: request.Published_year,
+			Genres:        genres,
+			Description:   request.Description,
+		}
 
-	// Сохранение книги в базе данных
-	if err := database.DB.Create(&book).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add book"})
-		return
-	}
+		// Сохранение книги в базе данных
+		if err := db.Create(&book).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add book"})
+			return
+		}
 
-	// Успешный ответ
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Book added successully!",
-		"title":   request.Title,
-	})
+		// Успешный ответ
+		c.JSON(http.StatusCreated, gin.H{
+			"message": "Book added successully!",
+			"title":   request.Title,
+		})
+	}
 }
 
 // DeleteBook
