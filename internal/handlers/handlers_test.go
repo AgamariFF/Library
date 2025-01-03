@@ -572,19 +572,42 @@ func TestDeleteBook(t *testing.T) {
 	assert.NoError(t, err)
 
 	router := gin.Default()
-	router.POST("/DeleteBook", handlers.AddBook(db))
+	router.DELETE("/DeleteBook", handlers.DeleteBook(db))
 
-	requestBody := map[string]int{
-		"id": 1,
+	requestBody := handlers.DeleteBookRequest{
+		ID: 2,
 	}
 	body, _ := json.Marshal(requestBody)
 
-	req, err := http.NewRequest(http.MethodPost, "/DeleteBook", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodDelete, "/DeleteBook", bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, req)
 
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	var responseBody map[string]interface{}
+	err = json.Unmarshal(recorder.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	assert.Equal(t, "Book not found", responseBody["error"])
+
+	requestBody = handlers.DeleteBookRequest{
+		ID: 1,
+	}
+	body, _ = json.Marshal(requestBody)
+
+	req, err = http.NewRequest(http.MethodDelete, "/DeleteBook", bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder = httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
 	assert.Equal(t, http.StatusOK, recorder.Code)
+	err = json.Unmarshal(recorder.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	assert.Equal(t, "Book deleted successully!", responseBody["message"])
+	err = db.Where("title = ?", "Test title").First(&book).Error
+	assert.NotNil(t, err)
 }
