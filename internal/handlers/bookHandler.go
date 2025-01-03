@@ -80,7 +80,7 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 		sortParam := c.Query("sort")
 
 		// Получаем все книги из БД
-		if err := database.DB.Preload("Genres", func(db *gorm.DB) *gorm.DB {
+		if err := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
 			return db.Select("genres.id, genres.name") // Выбираем только нужные поля
 		}).Find(&books).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -272,43 +272,46 @@ func AddBook(db *gorm.DB) gin.HandlerFunc {
 // @Failure      500  {object}  map[string]string
 // @Security BearerAuth
 // @Router       /deleteBook [post]
-func DeleteBook(c *gin.Context) {
-	// DeleteBookRequest структура запроса для удаления книги
-	// @Schema example={"id": 1}
-	var request DeleteBookRequest
+func DeleteBook(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-	// Проверяем входящий JSON
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+		// DeleteBookRequest структура запроса для удаления книги
+		// @Schema example={"id": 1}
+		var request DeleteBookRequest
 
-	// Пытаемся найти книгу
-	var book models.Book
-	result := database.DB.First(&book, request.ID)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// Если книга не найдена
-			c.JSON(http.StatusNotFound, gin.H{"error": "Book not found"})
+		// Проверяем входящий JSON
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		// Прочие ошибки
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve book", "details": result.Error})
-		return
+
+		// Пытаемся найти книгу
+		var book models.Book
+		result := db.First(&book, request.ID)
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				// Если книга не найдена
+				c.JSON(http.StatusNotFound, gin.H{"error": "Book not found"})
+				return
+			}
+			// Прочие ошибки
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve book", "details": result.Error})
+			return
+		}
+
+		// Удаляем книгу
+		if err := db.Delete(&book).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete book", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Book deleted successully!",
+			"ID":      request.ID,
+			"Title":   book.Title,
+		})
+
 	}
-
-	// Удаляем книгу
-	if err := database.DB.Delete(&book).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete book", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Book deleted successully!",
-		"ID":      request.ID,
-		"Title":   book.Title,
-	})
-
 }
 
 // Modifying book

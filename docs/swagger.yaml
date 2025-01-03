@@ -128,7 +128,7 @@ paths:
       summary: Show start page
       tags:
       - book
-  /addBooks:
+  /addBook:
     post:
       consumes:
       - application/json

@@ -41,7 +41,7 @@ func main() {
 	router.GET("/", handlers.Welcome)
 	router.GET("/getBooks", handlers.GetBooks(database.DB))
 	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB))
-	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook)
+	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook(database.DB))
 	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
 	router.POST("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook)
 	router.POST("/register", handlers.RegisterUser(database.DB))

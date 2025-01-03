@@ -41,7 +41,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/addBooks": {
+        "/addBook": {
             "post": {
                 "security": [
                     {

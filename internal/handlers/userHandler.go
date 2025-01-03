@@ -22,7 +22,7 @@ type RegisterUserRequest struct {
 // LoginRequest структура запроса для авторизации пользователя
 // @Schema example={"email": "Laminano@mail.ru", "password":"123456"}
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required" exmple:"Laminano@mail.ru`
+	Email    string `json:"email" binding:"required" exmple:"Laminano@mail.ru"`
 	Password string `json:"password" binding:"required" example:"123456"`
 }
 

@@ -33,7 +33,7 @@
                 }
             }
         },
-        "/addBooks": {
+        "/addBook": {
             "post": {
                 "security": [
                     {
