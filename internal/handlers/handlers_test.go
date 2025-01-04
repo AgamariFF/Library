@@ -384,6 +384,9 @@ func TestGetBooks(t *testing.T) {
 			{
 				Name: "Test name2",
 			},
+			{
+				Name: "Test name3",
+			},
 		},
 		Description: "Test description1",
 	}
@@ -398,9 +401,6 @@ func TestGetBooks(t *testing.T) {
 		Genres: []models.Genre{
 			{
 				Name: "Test name1",
-			},
-			{
-				Name: "Test name2",
 			},
 		},
 		Description: "Test description2",
@@ -446,14 +446,17 @@ func TestGetBooks(t *testing.T) {
 	assert.Equal(t, book1.Author, responseBooks[0].Author)
 	assert.Equal(t, book1.PublishedYear, responseBooks[0].PublishedYear)
 	assert.Equal(t, book1.Title, responseBooks[0].Title)
+	assert.Len(t, responseBooks[0].Genres, 3)
 
 	assert.Equal(t, book2.Author, responseBooks[1].Author)
 	assert.Equal(t, book2.PublishedYear, responseBooks[1].PublishedYear)
 	assert.Equal(t, book2.Title, responseBooks[1].Title)
+	assert.Len(t, responseBooks[1].Genres, 1)
 
 	assert.Equal(t, book3.Author, responseBooks[2].Author)
 	assert.Equal(t, book3.PublishedYear, responseBooks[2].PublishedYear)
 	assert.Equal(t, book3.Title, responseBooks[2].Title)
+	assert.Len(t, responseBooks[2].Genres, 2)
 
 	req, err = http.NewRequest(http.MethodGet, "/getBooks?sort=author", nil)
 	assert.NoError(t, err)
@@ -610,4 +613,102 @@ func TestDeleteBook(t *testing.T) {
 	assert.Equal(t, "Book deleted successully!", responseBody["message"])
 	err = db.Where("title = ?", "Test title").First(&book).Error
 	assert.NotNil(t, err)
+}
+
+func TestModifyingBook(t *testing.T) {
+	database.InitTestDB()
+	db := database.TestDB
+	defer database.CleanupTestDB()
+
+	book := models.Book{
+		Title:         "Test title",
+		Author:        "Test author",
+		PublishedYear: "2025",
+		Genres: []models.Genre{
+			{
+				Name: "Тест1",
+			},
+			{
+				Name: "Тест2",
+			},
+		},
+		Description: "Test description",
+	}
+
+	err := db.Create(&book).Error
+	assert.NoError(t, err)
+
+	requestBody := handlers.ModifyingBookRequest{
+		Id:             2,
+		Title:          "Changed title",
+		Author:         "Changed author",
+		Genre:          []string{"Изменен1", "Изменен2", "Изменен3"},
+		Published_year: "2000",
+		Description:    "Changed description",
+	}
+
+	body, _ := json.Marshal(requestBody)
+
+	router := gin.Default()
+	router.POST("/ModifyingBook", handlers.ModifyingBook(db))
+	req, err := http.NewRequest(http.MethodPost, "/ModifyingBook", bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+
+	var responseBody map[string]interface{}
+	json.Unmarshal(recorder.Body.Bytes(), &responseBody)
+
+	assert.Equal(t, "Book not found", responseBody["error"])
+
+	requestBody = handlers.ModifyingBookRequest{
+		Id:             1,
+		Title:          "Changed title",
+		Author:         "Changed author",
+		Genre:          []string{"Изменен1", "Изменен2", "Изменен3"},
+		Published_year: "2000",
+		Description:    "Changed description",
+	}
+
+	body, _ = json.Marshal(requestBody)
+
+	req, err = http.NewRequest(http.MethodPost, "/ModifyingBook", bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder = httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	responseBody = nil
+	json.Unmarshal(recorder.Body.Bytes(), &responseBody)
+	assert.Equal(t, "Book changed successfully!", responseBody["message"])
+
+	var responseBook models.Book
+	err = db.Preload("Genres").Where("title = ?", requestBody.Title).First(&responseBook).Error
+	assert.NoError(t, err)
+	assert.Equal(t, requestBody.Title, requestBody.Title)
+	assert.Equal(t, requestBody.Author, requestBody.Author)
+	assert.Equal(t, requestBody.Published_year, requestBody.Published_year)
+	assert.Equal(t, requestBody.Description, requestBody.Description)
+	assert.Len(t, responseBook.Genres, 3)
+	assert.Equal(t, "Изменен1", responseBook.Genres[0].Name)
+
+	invalidRequestBody := `{
+  "genre": ["Тест",
+}`
+
+	req, err = http.NewRequest(http.MethodPost, "/ModifyingBook", bytes.NewBuffer([]byte(invalidRequestBody)))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	recorder = httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"library/internal/database"
 	"library/internal/models"
 	"net/http"
 	"sort"
@@ -324,77 +323,84 @@ func DeleteBook(db *gorm.DB) gin.HandlerFunc {
 // @Param        book  body  ModifyingBookRequest  true  "Modifying book"  example({"id: "1", "published_year": "2021"})
 // @Security BearerAuth
 // @Router       /modifyingBook [post]
-func ModifyingBook(c *gin.Context) {
-	// Структура для запроса
-	var request ModifyingBookRequest
-	var book models.Book
+func ModifyingBook(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Структура для запроса
+		var request ModifyingBookRequest
+		var book models.Book
 
-	// Проверка на корректность данных запроса
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := database.DB.Where("id = ?", request.Id).First(&book).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Book not found",
-			})
+		// Проверка на корректность данных запроса
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-	}
 
-	var genres []models.Genre
-	if len(request.Genre) != 0 {
-		// Поиск или создание жанров
-		for _, genreName := range request.Genre {
-			genreName = strings.ToLower(genreName)
-			genreName = strings.ToUpper(string(genreName[0:2])) + genreName[2:]
-			var genre models.Genre
-			// Попытка найти жанр
-			if err := database.DB.Where("name = ?", genreName).First(&genre).Error; err != nil {
-				// Если жанр не найден, создаем новый
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					genre = models.Genre{Name: genreName}
-					if err := database.DB.Create(&genre).Error; err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+		// Загрузка книги с предзагрузкой жанров
+		if err := db.Preload("Genres").Where("id = ?", request.Id).First(&book).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Book not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve book"})
+			return
+		}
+
+		var genres []models.Genre
+		if len(request.Genre) != 0 {
+			// Поиск или создание жанров
+			for _, genreName := range request.Genre {
+				genreName = strings.ToLower(genreName)
+				genreName = strings.ToUpper(string(genreName[0:2])) + genreName[2:] // Заглавная первая буква
+				var genre models.Genre
+
+				// Попытка найти жанр
+				if err := db.Where("name = ?", genreName).First(&genre).Error; err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						genre = models.Genre{Name: genreName}
+						if err := db.Create(&genre).Error; err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+							return
+						}
+					} else {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve genre"})
 						return
 					}
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve genre"})
-					return
 				}
+				genres = append(genres, genre)
 			}
-			genres = append(genres, genre)
 		}
-	}
 
-	if request.Title != "" {
-		book.Title = request.Title
-	}
-	if request.Published_year != "" {
-		book.PublishedYear = request.Published_year
-	}
-	if request.Author != "" {
-		book.Author = request.Author
-	}
-	if request.Description != "" {
-		book.Description = request.Description
-	}
-	if len(request.Genre) > 0 {
-		book.Genres = genres
-	}
+		if request.Title != "" {
+			book.Title = request.Title
+		}
+		if request.Published_year != "" {
+			book.PublishedYear = request.Published_year
+		}
+		if request.Author != "" {
+			book.Author = request.Author
+		}
+		if request.Description != "" {
+			book.Description = request.Description
+		}
 
-	// Загрузка измененной книги
-	if err := database.DB.Save(&book).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err,
+		if len(request.Genre) > 0 {
+			if err := db.Model(&book).Association("Genres").Clear(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear genres"})
+				return
+			}
+			book.Genres = genres
+		}
+
+		// Сохранение измененной книги
+		if err := db.Save(&book).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Успешный ответ
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Book changed successfully!",
+			"title":   book.Title,
 		})
 	}
-
-	// Успешный ответ
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Book added successully!",
-		"title":   book.Title,
-	})
 }

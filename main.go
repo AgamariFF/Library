@@ -43,7 +43,7 @@ func main() {
 	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB))
 	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook(database.DB))
 	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
-	router.DELETE("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook)
+	router.DELETE("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook(database.DB))
 	router.POST("/register", handlers.RegisterUser(database.DB))
 	router.POST("/login", handlers.LoginUser(database.DB))
 
