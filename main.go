@@ -5,6 +5,7 @@ import (
 	_ "library/docs"
 	"library/internal/database"
 	"library/internal/handlers"
+	"library/internal/kafka"
 	"library/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,12 @@ func main() {
 		panic(err)
 	}
 
+	producer, _ := kafka.NewKafkaProducer([]string{"localhost:9092"}, "library-events")
+	defer producer.Close()
+
+	consumer, _ := kafka.NewKafkaConsumer([]string{"localhost:9092"}, "library-events")
+	go consumer.ConsumeMessage()
+
 	router := gin.Default()
 
 	router.Static("/docs", "./docs")
@@ -40,7 +47,7 @@ func main() {
 
 	router.GET("/", handlers.Welcome)
 	router.GET("/getBooks", handlers.GetBooks(database.DB))
-	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB))
+	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB, producer))
 	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook(database.DB))
 	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
 	router.DELETE("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook(database.DB))

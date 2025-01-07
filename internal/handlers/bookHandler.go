@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
+	"library/internal/kafka"
 	"library/internal/models"
 	"net/http"
 	"sort"
@@ -200,7 +202,7 @@ func GetBook(db *gorm.DB) gin.HandlerFunc {
 // @Failure      400  {object}  map[string]string
 // @Security BearerAuth
 // @Router       /addBook [post]
-func AddBook(db *gorm.DB) gin.HandlerFunc {
+func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Структура для запроса
 		var request AddBookRequest
@@ -246,6 +248,16 @@ func AddBook(db *gorm.DB) gin.HandlerFunc {
 		// Сохранение книги в базе данных
 		if err := db.Create(&book).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add book"})
+			return
+		}
+
+		event := map[string]interface{}{
+			"event": "BookAdded",
+			"data":  book,
+		}
+		eventBytes, _ := json.Marshal(event)
+		if err := producer.SendMessage(string(eventBytes)); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send event to Kafka"})
 			return
 		}
 

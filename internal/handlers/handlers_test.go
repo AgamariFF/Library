@@ -8,6 +8,7 @@ import (
 	"library/internal/auth"
 	"library/internal/database"
 	"library/internal/handlers"
+	"library/internal/kafka"
 	"library/internal/models"
 	"net/http"
 	"net/http/httptest"
@@ -226,7 +227,9 @@ func TestAddBook(t *testing.T) {
 	db := database.TestDB
 	defer database.CleanupTestDB()
 	router := gin.Default()
-	router.POST("/addBook", handlers.AddBook(db))
+	producer, _ := kafka.NewKafkaProducer([]string{"localhost:9092"}, "library-events")
+	defer producer.Close()
+	router.POST("/addBook", handlers.AddBook(db, producer))
 
 	book := `{
   "author": "John Doe",
