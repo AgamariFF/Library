@@ -1,16 +1,25 @@
-services:
-  db:
-    container_name: "libraryDB"
-    image: postgres:14.1-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
+version: "3.8"  
+services:  
+  app:  
+    build: .  
+    ports:  
+      - "8080:8080"  
+    env_file:
+      - configs/.env
+    environment:  
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=postgres
+    depends_on:  
+      - database  
+
+  database:  
+    image: postgres:15  
+    environment:  
+      POSTGRES_USER: postgres  
+      POSTGRES_PASSWORD: postgres  
+      POSTGRES_DB: postgres  
+    ports:  
       - "5433:5432"
-    networks:
-      - custom
-networks:
-  custom:
-    driver: bridge
