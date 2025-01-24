@@ -1,39 +1,60 @@
-version: "3.8"  
-services:  
+version: "3.8"
+services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - my_network
 
   kafka:
     image: confluentinc/cp-kafka:latest
+    container_name: kafka
     ports:
       - "9092:9092"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-  app:  
-    build: .  
-    ports:  
-      - "8080:8080"  
+    networks:
+      - my_network
+    depends_on:
+      - zookeeper
+
+  app:
+    build: .
+    container_name: app
+    ports:
+      - "8080:8080"
     env_file:
       - configs/.env
-    environment:  
+    environment:
       - DB_HOST=database
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
-    depends_on:  
-      - database  
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - my_network
+    depends_on:
+      - database
+      - kafka
 
-  database:  
-    image: postgres:15  
-    environment:  
-      POSTGRES_USER: postgres  
-      POSTGRES_PASSWORD: postgres  
-      POSTGRES_DB: postgres  
-    ports:  
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
       - "5433:5432"
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge
