@@ -89,7 +89,7 @@ func LoginUser(db *gorm.DB) gin.HandlerFunc {
 
 		var User models.User
 		if err := db.Where("email = ?", request.Email).First(&User).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err, "message": "email is not registered"})
 			return
 		}
 

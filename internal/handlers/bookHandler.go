@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"library/internal/kafka"
 	"library/internal/models"
@@ -251,15 +250,15 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 			return
 		}
 
-		event := map[string]interface{}{
-			"event": "BookAdded",
-			"data":  book,
-		}
-		eventBytes, _ := json.Marshal(event)
-		if err := producer.SendMessage(string(eventBytes)); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send event to Kafka"})
-			return
-		}
+		// event := map[string]interface{}{
+		// 	"event": "BookAdded",
+		// 	"data":  book,
+		// }
+		// eventBytes, _ := json.Marshal(event)
+		// if err := producer.SendMessage(string(eventBytes)); err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send event to Kafka"})
+		// 	return
+		// }
 
 		// Успешный ответ
 		c.JSON(http.StatusCreated, gin.H{

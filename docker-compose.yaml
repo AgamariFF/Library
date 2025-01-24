@@ -6,8 +6,6 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - my_network
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -19,8 +17,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    networks:
-      - my_network
+
     depends_on:
       - zookeeper
 
@@ -38,8 +35,7 @@ services:
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
       - KAFKA_BROKERS=kafka:9092
-    networks:
-      - my_network
+
     depends_on:
       - database
       - kafka
@@ -52,9 +48,3 @@ services:
       POSTGRES_DB: postgres
     ports:
       - "5433:5432"
-    networks:
-      - my_network
-
-networks:
-  my_network:
-    driver: bridge

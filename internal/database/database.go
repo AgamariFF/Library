@@ -1,9 +1,11 @@
 package database
 
 import (
+	"fmt"
 	"library/internal/models"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
@@ -13,6 +15,23 @@ import (
 
 var DB *gorm.DB
 var TestDB *gorm.DB
+
+func ConnectWithRetry(maxRetries int, delay time.Duration) error {
+	var database *gorm.DB
+	var err error
+	dsn := os.Getenv("DB_DSN")
+	for i := 0; i < maxRetries; i++ {
+		database, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err == nil {
+			DB = database
+			return nil
+		}
+
+		fmt.Printf("Failed to connect to database (attempt %d/%d): %s", i+1, maxRetries, err)
+		time.Sleep(delay)
+	}
+	return err
+}
 
 func ConnectDatabase() error {
 	dsn := os.Getenv("DB_DSN")
