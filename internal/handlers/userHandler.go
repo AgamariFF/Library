@@ -17,6 +17,7 @@ type RegisterUserRequest struct {
 	Name     string `json:"name" binding:"required" example:"Vladislav"`
 	Email    string `json:"email" binding:"required,email" example:"Laminano@mail.ru"`
 	Password string `json:"password" binding:"required,min=6" example:"123456"`
+	Mailing  bool   `json:"mailing" binding:"required" example:"True`
 }
 
 // LoginRequest структура запроса для авторизации пользователя
