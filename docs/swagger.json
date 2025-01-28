@@ -458,6 +458,7 @@
             "type": "object",
             "required": [
                 "email",
+                "mailing",
                 "name",
                 "password"
             ],
@@ -465,6 +466,10 @@
                 "email": {
                     "type": "string",
                     "example": "Laminano@mail.ru"
+                },
+                "mailing": {
+                    "type": "boolean",
+                    "example": true
                 },
                 "name": {
                     "type": "string",
@@ -492,7 +497,7 @@
                         "$ref": "#/definitions/models.Genre"
                     }
                 },
-                "publishedYear": {
+                "published_year": {
                     "type": "string"
                 },
                 "title": {

@@ -12,12 +12,12 @@ import (
 )
 
 // RegisterUserRequest структура запроса для регистрации пользователя
-// @Schema example={"name": "Vladislav", "email": "Laminano@mail.ru", "password":"123456"}
+// @Schema example={"name": "Vladislav", "email": "Laminano@mail.ru", "password":"123456", "mailing":true}
 type RegisterUserRequest struct {
 	Name     string `json:"name" binding:"required" example:"Vladislav"`
 	Email    string `json:"email" binding:"required,email" example:"Laminano@mail.ru"`
 	Password string `json:"password" binding:"required,min=6" example:"123456"`
-	Mailing  bool   `json:"mailing" binding:"required" example:"True`
+	Mailing  bool   `json:"mailing" binding:"required" example:"true"`
 }
 
 // LoginRequest структура запроса для авторизации пользователя
@@ -37,7 +37,7 @@ type TokenResponse struct {
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Param        user  body  RegisterUserRequest  true  "User Data" example({"name": "Vladislav", "email": "Laminano@mail.ru", "password":"123456"})
+// @Param        user  body  RegisterUserRequest  true  "User Data" example({"name": "Vladislav", "email": "Laminano@mail.ru", "password":"123456", "mailing":true})
 // @Success 201 {object} map[string]string
 // @Router       /register [post]
 func RegisterUser(db *gorm.DB) gin.HandlerFunc {
@@ -56,6 +56,7 @@ func RegisterUser(db *gorm.DB) gin.HandlerFunc {
 			Name:     request.Name,
 			Email:    request.Email,
 			Password: hasherPassword,
+			Mailing:  request.Mailing,
 			Role:     "reader",
 		}
 

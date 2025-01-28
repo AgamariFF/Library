@@ -466,6 +466,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "email",
+                "mailing",
                 "name",
                 "password"
             ],
@@ -473,6 +474,10 @@ const docTemplate = `{
                 "email": {
                     "type": "string",
                     "example": "Laminano@mail.ru"
+                },
+                "mailing": {
+                    "type": "boolean",
+                    "example": true
                 },
                 "name": {
                     "type": "string",
@@ -500,7 +505,7 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Genre"
                     }
                 },
-                "publishedYear": {
+                "published_year": {
                     "type": "string"
                 },
                 "title": {

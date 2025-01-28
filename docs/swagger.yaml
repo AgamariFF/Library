@@ -67,6 +67,9 @@ definitions:
       email:
         example: Laminano@mail.ru
         type: string
+      mailing:
+        example: true
+        type: boolean
       name:
         example: Vladislav
         type: string
@@ -76,6 +79,7 @@ definitions:
         type: string
     required:
     - email
+    - mailing
     - name
     - password
     type: object
@@ -89,7 +93,7 @@ definitions:
         items:
           $ref: '#/definitions/models.Genre'
         type: array
-      publishedYear:
+      published_year:
         type: string
       title:
         type: string

@@ -47,10 +47,10 @@ func ConnectDatabase() error {
 func InitTestDB() {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Failed to open database: %v", err))
 	}
 	if err := db.AutoMigrate(&models.Book{}, &models.Genre{}, models.User{}); err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Failed to migrate database : %v", err))
 	}
 
 	TestDB = db
