@@ -5,6 +5,7 @@ import (
 	"errors"
 	"library/internal/kafka"
 	"library/internal/models"
+	"library/logger"
 	"net/http"
 	"sort"
 	"strings"
@@ -204,13 +205,17 @@ func GetBook(db *gorm.DB) gin.HandlerFunc {
 // @Router       /addBook [post]
 func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		logger.InfoLog.Println("Starting add book")
 		// Структура для запроса
 		var request AddBookRequest
 
 		// Проверка на корректность данных запроса
 		if err := c.ShouldBindJSON(&request); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			logger.InfoLog.Println("Bad request when creating a book: " + err.Error())
 			return
+		} else {
+			logger.InfoLog.Println("Succesfulle to decoding request")
 		}
 
 		// Поиск или создание жанров
@@ -222,14 +227,20 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 			// Попытка найти жанр
 			if err := db.Where("name = ?", genreName).First(&genre).Error; err != nil {
 				// Если жанр не найден, создаем новый
+				logger.InfoLog.Println(`Trying to find a genre "` + genreName + `"`)
 				if errors.Is(err, gorm.ErrRecordNotFound) {
+					logger.InfoLog.Println("No existing genre was found when creating the book")
 					genre = models.Genre{Name: genreName}
 					if err := db.Create(&genre).Error; err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+						logger.ErrorLog.Println("Failed to create genre when creating the book: " + err.Error())
 						return
+					} else {
+						logger.InfoLog.Println(`Genre "` + genreName + `" was created`)
 					}
 				} else {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve genre"})
+					logger.ErrorLog.Println("Failed to retrieve genre: " + err.Error())
 					return
 				}
 			}
@@ -248,7 +259,10 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 		// Сохранение книги в базе данных
 		if err := db.Create(&book).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add book"})
+			logger.ErrorLog.Println("Failed to add book " + err.Error())
 			return
+		} else {
+			logger.InfoLog.Println(`Book "` + book.Title + `" created in database`)
 		}
 
 		event := map[string]interface{}{
@@ -257,8 +271,9 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 		}
 		eventBytes, _ := json.Marshal(event)
 		if err := producer.SendMessage(string(eventBytes)); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send event to Kafka"})
-			return
+			logger.ErrorLog.Println("Failed to send event to Kafka: " + err.Error())
+		} else {
+			logger.InfoLog.Println("Sending the event to kafka was successful")
 		}
 
 		// Успешный ответ
@@ -266,6 +281,7 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 			"message": "Book added successully!",
 			"title":   request.Title,
 		})
+		logger.InfoLog.Println("Adding book was successful")
 	}
 }
 

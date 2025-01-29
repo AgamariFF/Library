@@ -5,9 +5,10 @@ import (
 	_ "library/docs"
 	"library/internal/database"
 	"library/internal/handlers"
+	"library/logger"
 	"time"
 
-	// "library/internal/kafka"
+	"library/internal/kafka"
 	"library/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -25,31 +26,35 @@ import (
 // @BasePath /
 func main() {
 
+	if err := logger.InitLog(); err != nil {
+		panic("Failed to initialized logger: " + err.Error())
+	}
+
 	cfg := config.LoadConfig()
 
 	if err := database.ConnectWithRetry(6, time.Second); err != nil {
-		panic(err)
+		logger.ErrorLog.Println("Failed connect to database with retry: " + err.Error())
 	}
 
 	if err := database.Migrate(); err != nil {
-		panic(err)
+		logger.ErrorLog.Println("Failed to migrate database: " + err.Error())
 	}
 
-	// producer, err := kafka.NewKafkaProducer([]string{"localhost:9092"}, "library-events")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer func() {
-	// 	if producer != nil {
-	// 		producer.Close()
-	// 	}
-	// }()
+	producer, err := kafka.NewKafkaProducer([]string{"localhost:9092"}, "library-events")
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if producer != nil {
+			producer.Close()
+		}
+	}()
 
-	// consumer, err := kafka.NewKafkaConsumer([]string{"localhost:9092"}, "library-events")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// go consumer.ConsumeMessage()
+	consumer, err := kafka.NewKafkaConsumer([]string{"localhost:9092"}, "library-events")
+	if err != nil {
+		panic(err)
+	}
+	go consumer.ConsumeMessage()
 
 	router := gin.Default()
 

@@ -10,6 +10,7 @@ import (
 	"library/internal/handlers"
 	"library/internal/kafka"
 	"library/internal/models"
+	"library/logger"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -44,10 +45,11 @@ func TestRegisterUser(t *testing.T) {
 	router := gin.Default()
 	router.POST("/register", handlers.RegisterUser(db))
 
-	requestBody := map[string]string{
+	requestBody := map[string]interface{}{
 		"name":     "",
 		"email":    "",
 		"password": "",
+		"mailing":  "",
 	}
 	body, _ := json.Marshal(requestBody)
 
@@ -61,10 +63,11 @@ func TestRegisterUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 
-	requestBody = map[string]string{
+	requestBody = map[string]interface{}{
 		"name":     "Test Name",
 		"email":    "Test@example.com",
 		"password": "password123",
+		"mailing":  true,
 	}
 	body, _ = json.Marshal(requestBody)
 
@@ -223,6 +226,7 @@ func TestGetBook(t *testing.T) {
 }
 
 func TestAddBook(t *testing.T) {
+	logger.InitLog()
 	database.InitTestDB()
 	db := database.TestDB
 	defer database.CleanupTestDB()

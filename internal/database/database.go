@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"library/internal/models"
+	"library/logger"
 	"os"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func ConnectWithRetry(maxRetries int, delay time.Duration) error {
 			return nil
 		}
 
-		fmt.Printf("Failed to connect to database (attempt %d/%d): %s", i+1, maxRetries, err)
+		logger.InfoLog.Printf("Failed to connect to database (attempt %d/%d): %s", i+1, maxRetries, err)
 		time.Sleep(delay)
 	}
 	return err
