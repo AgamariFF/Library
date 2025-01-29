@@ -1,0 +1,7 @@
+INFO	2025/01/29 18:50:59 App started
+INFO	2025/01/29 18:51:04 Kafka producer created succesfully
+INFO	2025/01/29 18:51:14 Starting add book
+INFO	2025/01/29 18:51:14 Succesfulle to decoding request
+INFO	2025/01/29 18:51:14 Book "Golang Basics" created in database
+INFO	2025/01/29 18:51:14 Sending the event to kafka was successful
+INFO	2025/01/29 18:51:14 Adding book was successful

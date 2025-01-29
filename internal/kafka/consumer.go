@@ -1,7 +1,11 @@
 package kafka
 
 import (
-	"log"
+	"encoding/json"
+	"library/internal/database"
+	"library/internal/mailing"
+	"library/internal/models"
+	"library/logger"
 
 	"github.com/IBM/sarama"
 )
@@ -26,12 +30,25 @@ func NewKafkaConsumer(brokers []string, topic string) (*KafkaConsumer, error) {
 func (c *KafkaConsumer) ConsumeMessage() {
 	partitionConsumer, err := c.consumer.ConsumePartition(c.topic, 0, sarama.OffsetNewest)
 	if err != nil {
-		log.Fatal("Failed to start consumer:", err)
+		logger.ErrorLog.Fatal("Failed to start consumer:", err)
 	}
 
 	defer partitionConsumer.Close()
 
 	for message := range partitionConsumer.Messages() {
-		log.Printf("Message received: %s", string(message.Value))
+		var event struct{
+			event string
+			data models.Book
+		}
+		if err := json.Unmarshal(message.Value, &event); err != nil {
+			logger.ErrorLog.Println("Failed to pars Kafka message: ", err)
+			continue
+		}
+		
+		logger.InfoLog.Printf("New event received: %s", event.event)
+
+		if event.event == "BookAdded" {
+			go mailing.SendNewBookEmail(event.data, database.DB)
+		}
 	}
 }

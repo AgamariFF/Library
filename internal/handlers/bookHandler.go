@@ -264,7 +264,9 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 		} else {
 			logger.InfoLog.Println(`Book "` + book.Title + `" created in database`)
 		}
-
+		if producer == nil {
+			logger.ErrorLog.Panicln("Kafka producer is nil!")
+		}
 		event := map[string]interface{}{
 			"event": "BookAdded",
 			"data":  book,

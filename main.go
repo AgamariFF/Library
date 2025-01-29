@@ -30,19 +30,22 @@ func main() {
 		panic("Failed to initialized logger: " + err.Error())
 	}
 
+	logger.InfoLog.Println("App started")
+
 	cfg := config.LoadConfig()
 
 	if err := database.ConnectWithRetry(6, time.Second); err != nil {
 		logger.ErrorLog.Println("Failed connect to database with retry: " + err.Error())
 	}
+	time.Sleep(5 * time.Second)
 
 	if err := database.Migrate(); err != nil {
 		logger.ErrorLog.Println("Failed to migrate database: " + err.Error())
 	}
 
-	producer, err := kafka.NewKafkaProducer([]string{"localhost:9092"}, "library-events")
+	producer, err := kafka.NewKafkaProducer([]string{"kafka:9092"}, "library-events")
 	if err != nil {
-		panic(err)
+		logger.ErrorLog.Panicln("Failed to create kafke producer: " + err.Error())
 	}
 	defer func() {
 		if producer != nil {
@@ -50,9 +53,9 @@ func main() {
 		}
 	}()
 
-	consumer, err := kafka.NewKafkaConsumer([]string{"localhost:9092"}, "library-events")
+	consumer, err := kafka.NewKafkaConsumer([]string{"kafka:9092"}, "library-events")
 	if err != nil {
-		panic(err)
+		logger.ErrorLog.Panicln("Failed to create kafka consumer: " + err.Error())
 	}
 	go consumer.ConsumeMessage()
 
@@ -64,7 +67,7 @@ func main() {
 
 	router.GET("/", handlers.Welcome)
 	router.GET("/getBooks", handlers.GetBooks(database.DB))
-	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB, nil))
+	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB, producer))
 	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook(database.DB))
 	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
 	router.DELETE("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook(database.DB))

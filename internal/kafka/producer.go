@@ -2,6 +2,8 @@ package kafka
 
 import (
 	"encoding/json"
+	"errors"
+	"library/logger"
 
 	"github.com/IBM/sarama"
 )
@@ -19,8 +21,15 @@ func NewKafkaProducer(brokers []string, topic string) (*KafkaProducer, error) {
 
 	producer, err := sarama.NewSyncProducer(brokers, config)
 	if err != nil {
+		logger.ErrorLog.Println("Failed to create Kafka producer: ", err)
 		return nil, err
 	}
+	if producer == nil {
+		logger.ErrorLog.Println("Kafka producer is nil after creation in NewKafkaProducer!")
+		return nil, errors.New("producer is nil")
+	}
+
+	logger.InfoLog.Println("Kafka producer created succesfully")
 
 	return &KafkaProducer{
 		producer: producer,
