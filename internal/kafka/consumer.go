@@ -36,19 +36,22 @@ func (c *KafkaConsumer) ConsumeMessage() {
 	defer partitionConsumer.Close()
 
 	for message := range partitionConsumer.Messages() {
-		var event struct{
-			event string
-			data models.Book
+
+		var event struct {
+			Event string      `json:"event"`
+			Data  models.Book `json:"data"`
 		}
+
+		logger.InfoLog.Println("Raw Kafka message: ", string(message.Value))
 		if err := json.Unmarshal(message.Value, &event); err != nil {
-			logger.ErrorLog.Println("Failed to pars Kafka message: ", err)
+			logger.ErrorLog.Println("Failed to pars Kafka message\nerr: ", err, "\nmessage.Value in string: ", string(message.Value), "\nevent: ", event)
 			continue
 		}
-		
-		logger.InfoLog.Printf("New event received: %s", event.event)
 
-		if event.event == "BookAdded" {
-			go mailing.SendNewBookEmail(event.data, database.DB)
+		logger.InfoLog.Printf("New event received: %s", event.Event)
+
+		if event.Event == "BookAdded" {
+			go mailing.SendNewBookEmail(event.Data, database.DB)
 		}
 	}
 }

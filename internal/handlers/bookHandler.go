@@ -272,6 +272,7 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 			"data":  book,
 		}
 		eventBytes, _ := json.Marshal(event)
+		logger.InfoLog.Println("JSON sent to Kafka: ", string(eventBytes))
 		if err := producer.SendMessage(string(eventBytes)); err != nil {
 			logger.ErrorLog.Println("Failed to send event to Kafka: " + err.Error())
 		} else {

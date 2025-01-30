@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новая книга в библиотеке</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 24px;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .book-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .author {
+            font-size: 18px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        .genres {
+            margin: 10px 0;
+            font-style: italic;
+            color: #777;
+        }
+
+        .description {
+            font-size: 16px;
+            margin-top: 15px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">📚 Новая книга в библиотеке!</div>
+        <div class="content">
+            <p class="book-title">{{.Title}}</p>
+            <p class="author">Автор: <strong>{{.Author}}</strong></p>
+            <p class="genres">Жанры: {{.Genres}}</p>
+            <p class="description">{{.Description}}</p>
+            <a href="{{.BookLink}}" class="button">📖 Читать подробнее</a>
+        </div>
+        <div class="footer">
+            Если вы не хотите получать такие уведомления, <a href="{{.UnsubscribeLink}}">отпишитесь здесь</a>.
+        </div>
+    </div>
+</body>
+
+</html>
