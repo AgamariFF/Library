@@ -48,13 +48,14 @@ func SendNewBookEmail(book models.Book, db *gorm.DB) {
 		logger.ErrorLog.Println("Failed to get subscribers: ", err)
 		return
 	}
+	logger.InfoLog.Println("Geting subscribers for mailing succesfully")
 
 	html, err := GenerateEmailNewBookBody(emailBook)
 	if err != nil {
 		logger.ErrorLog.Println("Failed to create html body to send email about new book: ", err)
 	}
+	logger.InfoLog.Println("Generate html body for mailing succesfully")
 
-	logger.InfoLog.Println("Вот что скопировал из файла:\n", html) // УДАЛИТЬ ПОЗЖЕ!!!!!!!!!!!!!!!!!!!!!!!!!!
 	for _, email := range emails {
 		go SendEmail(email, "Новая книга доступна!", html)
 	}
@@ -62,7 +63,7 @@ func SendNewBookEmail(book models.Book, db *gorm.DB) {
 
 func GetSubscribers(db *gorm.DB) ([]string, error) {
 	var emails []string
-	err := db.Model(&models.User{}).Where("mailing - ?", true).Pluck("email", &emails).Error
+	err := db.Model(&models.User{}).Where("mailing = ?", true).Pluck("email", &emails).Error
 	return emails, err
 }
 
@@ -74,26 +75,26 @@ func SendEmail(to, subject, body string) {
 		return
 	}
 
+	logger.InfoLog.Println("SMTP_Name:", from, "\tSMTP_Password:", password)
+
 	mailer := gomail.NewMessage()
 	mailer.SetHeader("From", from)
 	mailer.SetHeader("To", to)
 	mailer.SetHeader("Subject", subject)
 	mailer.SetBody("text/html", body)
-
-	dialer := gomail.NewDialer("smtp.mail.ru", 465, from, password)
-	dialer.SSL = true
+	dialer := gomail.NewDialer("smtp.mail.ru", 587, from, password)
+	dialer.SSL = false
 
 	if err := dialer.DialAndSend(mailer); err != nil {
-		logger.ErrorLog.Println("Failed to send email: ", err)
+		logger.ErrorLog.Printf("Failed to send email: %+v", err)
 		return
 	}
 
 	logger.InfoLog.Println("Email sent to: ", to)
-	return
 }
 
 func GenerateEmailNewBookBody(book EmailData) (string, error) {
-	html, err := ioutil.ReadFile("../../HTML/NewBook.html")
+	html, err := ioutil.ReadFile("HTML/NewBook.html")
 	if err != nil {
 		return "", err
 	}

@@ -37,13 +37,20 @@ func (c *KafkaConsumer) ConsumeMessage() {
 
 	for message := range partitionConsumer.Messages() {
 
-		var event struct {
-			Event string      `json:"event"`
-			Data  models.Book `json:"data"`
+		var rawMessage string
+
+		if err := json.Unmarshal(message.Value, &rawMessage); err != nil {
+			logger.ErrorLog.Println("Failed to unmarshal Kafka message to string\nerr: ", err, "\nmessage.Value in string: ", string(message.Value))
+			continue
 		}
 
-		logger.InfoLog.Println("Raw Kafka message: ", string(message.Value))
-		if err := json.Unmarshal(message.Value, &event); err != nil {
+		var event struct {
+			Data  models.Book `json:"data"`
+			Event string      `json:"event"`
+		}
+
+		logger.InfoLog.Println("Raw Kafka message: ", rawMessage)
+		if err := json.Unmarshal([]byte(rawMessage), &event); err != nil {
 			logger.ErrorLog.Println("Failed to pars Kafka message\nerr: ", err, "\nmessage.Value in string: ", string(message.Value), "\nevent: ", event)
 			continue
 		}
