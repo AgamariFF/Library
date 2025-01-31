@@ -3,7 +3,9 @@ package middleware
 import (
 	"fmt"
 	"library/internal/auth"
+	"library/logger"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -11,30 +13,34 @@ import (
 
 func JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing of invalid token"})
+		logger.InfoLog.Println("Getting jwt token from cookies")
+		token, err := c.Cookie("jwt")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid token"})
+			logger.InfoLog.Println("Error when getting jwt from cookies.\tJWT token == nil:", (token == ""), "\nError:", err)
 			c.Abort()
 			return
 		}
 
-		claims, err := auth.ValidateJWT(authHeader)
+		logger.InfoLog.Println("Validating jwt token")
+		_, err = auth.ValidateJWT(token)
 		if err != nil {
+			logger.InfoLog.Println("Error when validating jwt token.\tError:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
-		c.Set("userID", claims["id"])
-		c.Set("userRole", claims["role"])
+		// c.Set("userID", claims["id"])
+		// c.Set("userRole", claims["role"])
 		c.Next()
 	}
 }
 
 func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token is required"})
+		tokenString, err := c.Cookie("jwt")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid token"})
 			c.Abort()
 			return
 		}
@@ -43,7 +49,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte("your_secret_key"), nil
+			return []byte(os.Getenv("jwtSecret")), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -53,7 +59,6 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		claims, ok := token.Claims.(*auth.MyClaims)
-		fmt.Println(tokenString, "|||", ok)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Claims"})
 			c.Abort()

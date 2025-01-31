@@ -1,3 +1,4 @@
+basePath: /
 definitions:
   handlers.AddBookRequest:
     properties:
@@ -109,6 +110,7 @@ definitions:
       name:
         type: string
     type: object
+host: localhost:8080
 info:
   contact: {}
   description: This is a sample library server
@@ -137,8 +139,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Add a new book to the library
-        JWT Bearer authentcation only admin
+        JWT authentication via cookie only for admin.
+        The JWT token should be stored in a cookie named "jwt".
       parameters:
       - description: Book Data
         in: body
@@ -161,18 +163,17 @@ paths:
             additionalProperties:
               type: string
             type: object
-      security:
-      - BearerAuth: []
       summary: Add a new book
       tags:
       - book
   /deleteBook:
-    post:
+    delete:
       consumes:
       - application/json
       description: |-
         deletes the book from the library
-        JWT Bearer authentcation only admin
+        JWT authentication via cookie only for admin.
+        The JWT token should be stored in a cookie named "jwt".
       parameters:
       - description: Book Data
         in: body
@@ -207,8 +208,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-      security:
-      - BearerAuth: []
       summary: Delete the book
       tags:
       - book
@@ -217,8 +216,9 @@ paths:
       consumes:
       - application/json
       description: |-
-        JWT Bearer authentcation
         Get detailed information about a single book by ID
+        JWT authentication via cookie.
+        The JWT token should be stored in a cookie named "jwt".
       parameters:
       - description: Book ID
         in: query
@@ -250,8 +250,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-      security:
-      - BearerAuth: []
       summary: Get one book
       tags:
       - book
@@ -312,7 +310,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Modifies the data of an existing workbook
+        JWT authentication via cookie only for admin.
+        The JWT token should be stored in a cookie named "jwt".
         JWT Bearer authentcation only admin
       parameters:
       - description: Modifying book
@@ -324,8 +323,6 @@ paths:
       produces:
       - application/json
       responses: {}
-      security:
-      - BearerAuth: []
       summary: Modifying book
       tags:
       - book
@@ -353,9 +350,21 @@ paths:
       summary: Add a new User
       tags:
       - user
-securityDefinitions:
-  BearerAuth:
-    in: header
-    name: Authorization
-    type: apiKey
+  /unsubMailing:
+    post:
+      consumes:
+      - application/json
+      description: Describes the user from the mailing list
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unsubscribe mailing
+      tags:
+      - user
 swagger: "2.0"

@@ -43,12 +43,7 @@ const docTemplate = `{
         },
         "/addBook": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Add a new book to the library\nJWT Bearer authentcation only admin",
+                "description": "JWT authentication via cookie only for admin.\nThe JWT token should be stored in a cookie named \"jwt\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -93,13 +88,8 @@ const docTemplate = `{
             }
         },
         "/deleteBook": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "deletes the book from the library\nJWT Bearer authentcation only admin",
+            "delete": {
+                "description": "deletes the book from the library\nJWT authentication via cookie only for admin.\nThe JWT token should be stored in a cookie named \"jwt\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -163,12 +153,7 @@ const docTemplate = `{
         },
         "/getBook": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "JWT Bearer authentcation\nGet detailed information about a single book by ID",
+                "description": "Get detailed information about a single book by ID\nJWT authentication via cookie.\nThe JWT token should be stored in a cookie named \"jwt\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -307,12 +292,7 @@ const docTemplate = `{
         },
         "/modifyingBook": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Modifies the data of an existing workbook\nJWT Bearer authentcation only admin",
+                "description": "JWT authentication via cookie only for admin.\nThe JWT token should be stored in a cookie named \"jwt\".\nJWT Bearer authentcation only admin",
                 "consumes": [
                     "application/json"
                 ],
@@ -361,6 +341,32 @@ const docTemplate = `{
                         }
                     }
                 ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/unsubMailing": {
+            "post": {
+                "description": "Describes the user from the mailing list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Unsubscribe mailing",
                 "responses": {
                     "201": {
                         "description": "Created",
@@ -530,21 +536,14 @@ const docTemplate = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "",
-	BasePath:         "",
+	Host:             "localhost:8080",
+	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Library API",
 	Description:      "This is a sample library server",

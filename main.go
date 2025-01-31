@@ -19,7 +19,6 @@ import (
 // @title Library API
 // @version 1.0
 // @description This is a sample library server
-// @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
 // @host localhost:8080
@@ -68,11 +67,12 @@ func main() {
 	router.GET("/", handlers.Welcome)
 	router.GET("/getBooks", handlers.GetBooks(database.DB))
 	router.POST("/addBook", middleware.RoleMiddleware("admin"), handlers.AddBook(database.DB, producer))
-	router.POST("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook(database.DB))
+	router.DELETE("/deleteBook", middleware.RoleMiddleware("admin"), handlers.DeleteBook(database.DB))
 	router.GET("/getBook", middleware.JWTMiddleware(), handlers.GetBook(database.DB))
-	router.DELETE("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook(database.DB))
+	router.POST("/modifyingBook", middleware.RoleMiddleware("admin"), handlers.ModifyingBook(database.DB))
 	router.POST("/register", handlers.RegisterUser(database.DB))
 	router.POST("/login", handlers.LoginUser(database.DB))
+	router.POST("/unsubMailing", handlers.UnsubscribeMailing(database.DB))
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)

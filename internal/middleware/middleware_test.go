@@ -6,6 +6,7 @@ import (
 	"library/internal/middleware"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestJWTMiddlew(t *testing.T) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte("your_secret_key"))
+	signedToken, err := token.SignedString([]byte(os.Getenv("jwtSecret")))
 	assert.NoError(t, err)
 
 	router := gin.Default()
@@ -71,7 +72,7 @@ func TestRoleMiddleware(t *testing.T) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte("your_secret_key"))
+	signedToken, err := token.SignedString([]byte(os.Getenv("jwtSecret")))
 	assert.NoError(t, err)
 
 	router := gin.Default()
@@ -94,7 +95,7 @@ func TestRoleMiddleware(t *testing.T) {
 		},
 	}
 	token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err = token.SignedString([]byte("your_secret_key"))
+	signedToken, err = token.SignedString([]byte(os.Getenv("jwtSecret")))
 	assert.NoError(t, err)
 
 	req, err = http.NewRequest(http.MethodGet, "/test", nil)

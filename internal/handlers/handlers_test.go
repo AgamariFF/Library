@@ -13,6 +13,7 @@ import (
 	"library/logger"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -141,7 +142,7 @@ func TestLoginUser(t *testing.T) {
 
 	claims := &auth.MyClaims{}
 	parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("your_secret_key"), nil
+		return []byte(os.Getenv("jwtSecret")), nil
 	})
 	assert.NoError(t, err, "Failed to parse token")
 	assert.True(t, parsedToken.Valid, "Token is invalid")

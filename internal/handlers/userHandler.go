@@ -3,11 +3,16 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"library/internal/auth"
 	"library/internal/models"
+	"library/logger"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 )
 
@@ -108,7 +113,81 @@ func LoginUser(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
+		c.SetCookie("jwt", token, 3600, "/", os.Getenv("domain"), false, true)
+		c.JSON(http.StatusOK, gin.H{"message": "User authorization successfully"})
+	}
+}
 
-		c.JSON(http.StatusOK, token)
+// UnsubscribeMailing
+// @Summary      Unsubscribe mailing
+// @Description  Describes the user from the mailing list
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Success 201 {object} map[string]string
+// @Router       /unsubMailing [post]
+func UnsubscribeMailing(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		logger.InfoLog.Println("Getting jwt token from cookies")
+		tokenString, err := c.Cookie("jwt")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid token"})
+			logger.InfoLog.Println("Error when getting jwt from cookies.\tJWT token == nil:", (tokenString == ""), "\nError:", err)
+			c.Abort()
+			return
+		}
+
+		logger.InfoLog.Println("Validating jwt token")
+		token, err := jwt.ParseWithClaims(tokenString, &auth.MyClaims{}, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(os.Getenv("jwtSecret")), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			logger.InfoLog.Println("Error when validating jwt token.\ttoken.Valid:", token.Valid, "\tError: ", err)
+			c.Abort()
+			return
+		}
+
+		claims, ok := token.Claims.(*auth.MyClaims)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Claims"})
+			c.Abort()
+			return
+		}
+
+		var user models.User
+
+		if !claims.Mailing {
+			c.JSON(http.StatusOK, gin.H{"message": "You have already unsubscribed from the mailing list"})
+			c.Abort()
+			return
+		}
+
+		if err := db.Where("id = ?", claims.Subject).First(&user).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.SetCookie("jwt", "", -1, "/", os.Getenv("domain"), false, true)
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+		}
+		user.Mailing = false
+		if err := db.Save(&user).Error; err != nil {
+			logger.ErrorLog.Println("Failes unsubscribe from the mailing list\tError:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		logger.InfoLog.Println("User unsubscribed from the mailing list. User ID:", claims.Subject)
+		c.JSON(http.StatusOK, gin.H{"message": "You have unsubscribed from the mailing list"})
+		tokenString, err = auth.GenerateJWT(user)
+		if err != nil {
+			logger.ErrorLog.Println("Failing to generate new JWT token\tError:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
+		c.SetCookie("jwt", tokenString, 3600, "/", os.Getenv("domain"), false, true)
 	}
 }

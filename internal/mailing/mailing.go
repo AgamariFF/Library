@@ -2,7 +2,6 @@ package mailing
 
 import (
 	"bytes"
-	"io/ioutil"
 	"library/internal/models"
 	"library/logger"
 	"os"
@@ -39,7 +38,7 @@ func SendNewBookEmail(book models.Book, db *gorm.DB) {
 		Author:          book.Author,
 		Genres:          genres,
 		Description:     book.Description,
-		BookLink:        "localhost:8080/getBook&id=" + strconv.Itoa(int(book.ID)),
+		BookLink:        "http://localhost:8080/getBook?bookId=" + strconv.Itoa(int(book.ID)),
 		UnsubscribeLink: "",
 	}
 
@@ -56,9 +55,7 @@ func SendNewBookEmail(book models.Book, db *gorm.DB) {
 	}
 	logger.InfoLog.Println("Generate html body for mailing succesfully")
 
-	for _, email := range emails {
-		go SendEmail(email, "Новая книга доступна!", html)
-	}
+	SendEmail(emails, "Новая книга доступна!", html)
 }
 
 func GetSubscribers(db *gorm.DB) ([]string, error) {
@@ -67,7 +64,7 @@ func GetSubscribers(db *gorm.DB) ([]string, error) {
 	return emails, err
 }
 
-func SendEmail(to, subject, body string) {
+func SendEmail(to []string, subject, body string) {
 	from := os.Getenv("SMTP_Name")
 	password := os.Getenv("SMTP_Password")
 	if (from == "") || (password == "") {
@@ -75,15 +72,15 @@ func SendEmail(to, subject, body string) {
 		return
 	}
 
-	logger.InfoLog.Println("SMTP_Name:", from, "\tSMTP_Password:", password)
+	logger.InfoLog.Println("SMTP_Name:"+from, "\tSMTP_Password:"+password)
 
 	mailer := gomail.NewMessage()
 	mailer.SetHeader("From", from)
-	mailer.SetHeader("To", to)
+	mailer.SetHeader("To", to...)
 	mailer.SetHeader("Subject", subject)
 	mailer.SetBody("text/html", body)
-	dialer := gomail.NewDialer("smtp.mail.ru", 587, from, password)
-	dialer.SSL = false
+	dialer := gomail.NewDialer("smtp.mail.ru", 465, from, password)
+	dialer.SSL = true
 
 	if err := dialer.DialAndSend(mailer); err != nil {
 		logger.ErrorLog.Printf("Failed to send email: %+v", err)
@@ -94,7 +91,7 @@ func SendEmail(to, subject, body string) {
 }
 
 func GenerateEmailNewBookBody(book EmailData) (string, error) {
-	html, err := ioutil.ReadFile("HTML/NewBook.html")
+	html, err := os.ReadFile("HTML/NewBook.html")
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +102,7 @@ func GenerateEmailNewBookBody(book EmailData) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	logger.InfoLog.Println(book)
 	var body bytes.Buffer
 	if err := tmpl.Execute(&body, book); err != nil {
 		return "", err

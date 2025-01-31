@@ -144,8 +144,9 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 
 // GetBook возвращает информацию об одной книге
 // @Summary      Get one book
-// @Description JWT Bearer authentcation
 // @Description  Get detailed information about a single book by ID
+// @Description  JWT authentication via cookie.
+// @Description	 The JWT token should be stored in a cookie named "jwt".
 // @Tags         book
 // @Accept       json
 // @Produce      json
@@ -154,7 +155,6 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 // @Failure      400     {object} map[string]string
 // @Failure      404     {object} map[string]string
 // @Failure      500     {object} map[string]string
-// @Security BearerAuth
 // @Router       /getBook [get]
 func GetBook(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -193,15 +193,14 @@ func GetBook(db *gorm.DB) gin.HandlerFunc {
 
 // AddBook
 // @Summary      Add a new book
-// @Description  Add a new book to the library
-// @Description JWT Bearer authentcation only admin
+// @Description  JWT authentication via cookie only for admin.
+// @Description	 The JWT token should be stored in a cookie named "jwt".
 // @Tags         book
 // @Accept       json
 // @Produce      json
 // @Param        book  body  AddBookRequest  true  "Book Data"  example({"title": "Golang Basics", "author": "John Doe", "published_year": "2024", "genre": ["Учебная литература"], "description": "Эта книга — идеальный выбор для тех, кто хочет начать свое путешествие в программировании на языке Go."})
 // @Success      201  {object}  map[string]string
 // @Failure      400  {object}  map[string]string
-// @Security BearerAuth
 // @Router       /addBook [post]
 func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -291,7 +290,8 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 // DeleteBook
 // @Summary      Delete the book
 // @Description  deletes the book from the library
-// @Description JWT Bearer authentcation only admin
+// @Description  JWT authentication via cookie only for admin.
+// @Description	 The JWT token should be stored in a cookie named "jwt".
 // @Tags         book
 // @Accept       json
 // @Produce      json
@@ -300,8 +300,7 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 // @Failure      400  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
-// @Security BearerAuth
-// @Router       /deleteBook [post]
+// @Router       /deleteBook [delete]
 func DeleteBook(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -346,13 +345,13 @@ func DeleteBook(db *gorm.DB) gin.HandlerFunc {
 
 // Modifying book
 // @Summary      Modifying book
-// @Description  Modifies the data of an existing workbook
+// @Description  JWT authentication via cookie only for admin.
+// @Description	 The JWT token should be stored in a cookie named "jwt".
 // @Description JWT Bearer authentcation only admin
 // @Tags         book
 // @Accept       json
 // @Produce      json
 // @Param        book  body  ModifyingBookRequest  true  "Modifying book"  example({"id: "1", "published_year": "2021"})
-// @Security BearerAuth
 // @Router       /modifyingBook [post]
 func ModifyingBook(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
