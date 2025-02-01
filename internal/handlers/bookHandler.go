@@ -25,14 +25,14 @@ type AddBookRequest struct {
 }
 
 // ModifyingBookRequest структура запроса для добавления книги
-// @Schema example={"id": 1, "published_year": "2024"}
+// @Schema example={"id": 1, "published_year": "2021", "author": "Jeff Bezos", "title": "Why Does the World Exist?", "description": "Explore the ultimate question: Why is there something rather than nothing? This thought-provoking journey through philosophy, science, and metaphysics challenges readers to ponder existence itself, blending deep inquiry with accessible insight. A must-read for curious minds."}
 type ModifyingBookRequest struct {
 	Id             uint     `json:"id" binding:"required" example:"1"`
-	Title          string   `json:"title" swaggerignore:"true"`       // Название книги
-	Author         string   `json:"author" swaggerignore:"true"`      // Автор
-	Genre          []string `json:"genre" swaggerignore:"true"`       // Жанра
-	Published_year string   `json:"published_year" example:"2021"`    // Год публикации
-	Description    string   `json:"description" swaggerignore:"true"` // Описание книги
+	Title          string   `json:"title" example:"Why Does the World Exist?"`
+	Author         string   `json:"author" example:"Jeff Bezos"`
+	Genre          []string `json:"genre" example:"Детектив"`
+	Published_year string   `json:"published_year" example:"2021"`
+	Description    string   `json:"description" example:"Explore the ultimate question: Why is there something rather than nothing? This thought-provoking journey through philosophy, science, and metaphysics challenges readers to ponder existence itself, blending deep inquiry with accessible insight. A must-read for curious minds."`
 }
 
 // DeleteBookRequest структура запроса для удаления книги
@@ -170,7 +170,7 @@ func GetBook(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Поиск книги в базе данных
-		if err := db.Where("id = ?", bookId).First(&book).Error; err != nil {
+		if err := db.Preload("Genres").Where("id = ?", bookId).First(&book).Error; err != nil {
 			// Если книга не найдена
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				c.JSON(http.StatusNotFound, gin.H{
@@ -351,7 +351,7 @@ func DeleteBook(db *gorm.DB) gin.HandlerFunc {
 // @Tags         book
 // @Accept       json
 // @Produce      json
-// @Param        book  body  ModifyingBookRequest  true  "Modifying book"  example({"id: "1", "published_year": "2021"})
+// @Param        book  body  ModifyingBookRequest  true  "Book Data"  example({"id": 1, "published_year": "2021", "author": "Jeff Bezos", "title": "Why Does the World Exist?", "genre": ["Детектив"], "description": "Explore the ultimate question: Why is there something rather than nothing? This thought-provoking journey through philosophy, science, and metaphysics challenges readers to ponder existence itself, blending deep inquiry with accessible insight. A must-read for curious minds."})
 // @Router       /modifyingBook [post]
 func ModifyingBook(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

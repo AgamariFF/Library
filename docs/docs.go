@@ -305,7 +305,7 @@ const docTemplate = `{
                 "summary": "Modifying book",
                 "parameters": [
                     {
-                        "description": "Modifying book",
+                        "description": "Book Data",
                         "name": "book",
                         "in": "body",
                         "required": true,
@@ -355,7 +355,7 @@ const docTemplate = `{
             }
         },
         "/subMailing": {
-            "post": {
+            "get": {
                 "description": "Subscribes a user to mailing lists",
                 "consumes": [
                     "application/json"
@@ -375,7 +375,7 @@ const docTemplate = `{
             }
         },
         "/unsubMailing": {
-            "post": {
+            "get": {
                 "description": "Describes the user from the mailing list",
                 "consumes": [
                     "application/json"
@@ -471,14 +471,34 @@ const docTemplate = `{
                 "id"
             ],
             "properties": {
+                "author": {
+                    "type": "string",
+                    "example": "Jeff Bezos"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Explore the ultimate question: Why is there something rather than nothing? This thought-provoking journey through philosophy, science, and metaphysics challenges readers to ponder existence itself, blending deep inquiry with accessible insight. A must-read for curious minds."
+                },
+                "genre": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "Детектив"
+                    ]
+                },
                 "id": {
                     "type": "integer",
                     "example": 1
                 },
                 "published_year": {
-                    "description": "Год публикации",
                     "type": "string",
                     "example": "2021"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Why Does the World Exist?"
                 }
             }
         },

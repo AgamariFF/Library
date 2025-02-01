@@ -53,12 +53,29 @@ definitions:
     type: object
   handlers.ModifyingBookRequest:
     properties:
+      author:
+        example: Jeff Bezos
+        type: string
+      description:
+        example: 'Explore the ultimate question: Why is there something rather than
+          nothing? This thought-provoking journey through philosophy, science, and
+          metaphysics challenges readers to ponder existence itself, blending deep
+          inquiry with accessible insight. A must-read for curious minds.'
+        type: string
+      genre:
+        example:
+        - Детектив
+        items:
+          type: string
+        type: array
       id:
         example: 1
         type: integer
       published_year:
-        description: Год публикации
         example: "2021"
+        type: string
+      title:
+        example: Why Does the World Exist?
         type: string
     required:
     - id
@@ -314,7 +331,7 @@ paths:
         The JWT token should be stored in a cookie named "jwt".
         JWT Bearer authentcation only admin
       parameters:
-      - description: Modifying book
+      - description: Book Data
         in: body
         name: book
         required: true
@@ -351,7 +368,7 @@ paths:
       tags:
       - user
   /subMailing:
-    post:
+    get:
       consumes:
       - application/json
       description: Subscribes a user to mailing lists
@@ -364,7 +381,7 @@ paths:
       tags:
       - user
   /unsubMailing:
-    post:
+    get:
       consumes:
       - application/json
       description: Describes the user from the mailing list

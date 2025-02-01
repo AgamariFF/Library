@@ -10,6 +10,8 @@ import (
 	"library/logger"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -113,7 +115,21 @@ func LoginUser(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
-		c.SetCookie("jwt", token, 3600, "/", os.Getenv("domain"), false, true)
+
+		timeSec, err := strconv.Atoi(os.Getenv("JWTCoo_expires_time_sec"))
+		if err != nil {
+			logger.ErrorLog.Println("Failed get `JWTCoo_expires_time_sec` in .env when login user\tError:", err)
+		}
+		c.SetCookie("jwt", token, timeSec, "/", os.Getenv("domain"), false, true)
+
+		refreshToken := auth.GenerateRefreshToken()
+		User.RefreshToken = refreshToken
+		User.ExpiresAt = time.Now().Add(720 * time.Hour)
+		if err = db.Save(&User).Error; err != nil {
+			logger.ErrorLog.Println("Error save refresh token in db when logining\t Error:", err)
+		}
+		c.SetCookie("refreshToken", refreshToken, 2592000, "/", os.Getenv("domain"), false, true)
+
 		c.JSON(http.StatusOK, gin.H{"message": "User authorization successfully"})
 	}
 }
@@ -125,7 +141,7 @@ func LoginUser(db *gorm.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Success      200
-// @Router       /unsubMailing [post]
+// @Router       /unsubMailing [get]
 // @name         UnsubscribeMailing
 func UnsubscribeMailing(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -140,7 +156,7 @@ func UnsubscribeMailing(db *gorm.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Success      200
-// @Router       /subMailing [post]
+// @Router       /subMailing [get]
 // @name         SubscribeMailing
 func SubscribeMailing(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -232,7 +248,11 @@ func handlMailing(db *gorm.DB, subscribe bool, c *gin.Context) {
 	if err != nil {
 		logger.ErrorLog.Println("Failing to generate new JWT token\tError:", err)
 	}
-	c.SetCookie("jwt", tokenString, 3600, "/", os.Getenv("domain"), false, true)
-	c.JSON(http.StatusOK, gin.H{"message": message})
 
+	timeSec, err := strconv.Atoi(os.Getenv("JWTCoo_expires_time_sec"))
+	if err != nil {
+		logger.ErrorLog.Println("Failed get `JWTCoo_expires_time_sec` in .env when login user\tError:", err)
+	}
+	c.SetCookie("jwt", tokenString, timeSec, "/", os.Getenv("domain"), false, true)
+	c.JSON(http.StatusOK, gin.H{"message": message})
 }

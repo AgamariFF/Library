@@ -15,6 +15,13 @@ type Book struct {
 	Description   string
 }
 
+type Genre struct {
+	gorm.Model  `swaggerignore:"true"`
+	Name        string
+	Description string
+	Books       []Book `gorm:"many2many:book_genres"`
+}
+
 type User struct {
 	gorm.Model `swaggerignore:"true"`
 	Name       string `gorm:"size:100" json:"name" binding:"required"`
@@ -25,12 +32,5 @@ type User struct {
 
 	// Поля сессии
 	RefreshToken string    `gorm:"not null" json:"refresh_token"`
-	ExpiresAt    time.Time `gotm:"not null" json:"expires_at"`
-}
-
-type Genre struct {
-	gorm.Model  `swaggerignore:"true"`
-	Name        string
-	Description string
-	Books       []Book `gorm:"many2many:book_genres"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
