@@ -73,6 +73,7 @@ func main() {
 	router.POST("/register", handlers.RegisterUser(database.DB))
 	router.POST("/login", handlers.LoginUser(database.DB))
 	router.POST("/unsubMailing", handlers.UnsubscribeMailing(database.DB))
+	router.POST("/subMailing", handlers.SubscribeMailing(database.DB))
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)

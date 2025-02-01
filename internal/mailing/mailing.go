@@ -39,7 +39,7 @@ func SendNewBookEmail(book models.Book, db *gorm.DB) {
 		Genres:          genres,
 		Description:     book.Description,
 		BookLink:        "http://localhost:8080/getBook?bookId=" + strconv.Itoa(int(book.ID)),
-		UnsubscribeLink: "",
+		UnsubscribeLink: "http://localhost:8080/unsubMailing",
 	}
 
 	emails, err := GetSubscribers(db)

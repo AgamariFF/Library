@@ -354,6 +354,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/subMailing": {
+            "post": {
+                "description": "Subscribes a user to mailing lists",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Subscribe mailing",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/unsubMailing": {
             "post": {
                 "description": "Describes the user from the mailing list",
@@ -368,14 +388,8 @@ const docTemplate = `{
                 ],
                 "summary": "Unsubscribe mailing",
                 "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }

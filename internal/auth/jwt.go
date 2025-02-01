@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var jwtSecret []byte
@@ -43,4 +44,8 @@ func ValidateJWT(tokenString string) (jwt.MapClaims, error) {
 		return nil, err
 	}
 	return claims, nil
+}
+
+func GenerateRefreshToken() string {
+	return uuid.New().String()
 }
