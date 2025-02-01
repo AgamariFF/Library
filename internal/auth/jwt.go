@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"library/internal/models"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,7 +20,11 @@ type MyClaims struct {
 }
 
 func GenerateJWT(user models.User) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
+	timeSec, err := strconv.Atoi(os.Getenv("JWTCoo_expires_time_sec"))
+	if err != nil {
+		return "", err
+	}
+	expirationTime := time.Now().Add(time.Duration(timeSec) * time.Second)
 
 	claims := &MyClaims{
 		Role:    user.Role,
