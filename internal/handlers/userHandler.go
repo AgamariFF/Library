@@ -256,3 +256,39 @@ func handlMailing(db *gorm.DB, subscribe bool, c *gin.Context) {
 	c.SetCookie("jwt", tokenString, timeSec, "/", os.Getenv("domain"), false, true)
 	c.JSON(http.StatusOK, gin.H{"message": message})
 }
+
+// LogOut
+// @Summary      Log out user
+// @Description  Log user from the api
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Success      200
+// @Router       /logOut [post]
+// @name         logOut
+func LogOut(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		refreshToken, err := c.Cookie("refreshToken")
+		if err != nil {
+			logger.InfoLog.Println("the refresh token was not found when user logout")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User unauthorized"})
+			c.Abort()
+		}
+
+		var user models.User
+
+		if err = db.Where("refresh_token = ?", refreshToken).First(&user).Error; err != nil {
+			logger.ErrorLog.Println("failed to delete refresh token from db\t Error:", err)
+		} else {
+			user.RefreshToken = ""
+			if err = db.Save(&user).Error; err != nil {
+				logger.ErrorLog.Println("failed to save logout user in db\tError:", err)
+			}
+		}
+		c.SetCookie("refreshToken", "", -1, "/", os.Getenv("domain"), false, true)
+		c.SetCookie("jwt", "", -1, "/", os.Getenv("domain"), false, true)
+		logger.InfoLog.Printf("user %d logged out", user.ID)
+
+		c.JSON(http.StatusOK, gin.H{"message": "Log out succesfully"})
+	}
+}

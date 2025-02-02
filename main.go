@@ -72,8 +72,9 @@ func main() {
 	router.POST("/modifyingBook", middleware.RoleMiddleware(database.DB, "admin"), handlers.ModifyingBook(database.DB))
 	router.POST("/register", handlers.RegisterUser(database.DB))
 	router.POST("/login", handlers.LoginUser(database.DB))
-	router.GET("/unsubMailing",	middleware.RoleMiddleware(database.DB, "admin", "reader"), handlers.UnsubscribeMailing(database.DB)) //	При POST запросе не работает отписка в письме на почте
+	router.GET("/unsubMailing", middleware.RoleMiddleware(database.DB, "admin", "reader"), handlers.UnsubscribeMailing(database.DB)) //	При POST запросе не работает отписка в письме на почте
 	router.GET("/subMailing", middleware.RoleMiddleware(database.DB, "admin", "reader"), handlers.SubscribeMailing(database.DB))     //	GET за компанию	¯\_(ツ)_/¯
+	router.POST("/logOut", handlers.LogOut(database.DB))
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		panic(err)

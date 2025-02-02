@@ -253,6 +253,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/logOut": {
+            "post": {
+                "description": "Log user from the api",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Log out user",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Logs in an existing user",

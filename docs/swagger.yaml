@@ -298,6 +298,19 @@ paths:
       summary: Get list of books
       tags:
       - book
+  /logOut:
+    post:
+      consumes:
+      - application/json
+      description: Log user from the api
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Log out user
+      tags:
+      - user
   /login:
     post:
       consumes:
