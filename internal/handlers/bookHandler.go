@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"library/internal/database"
 	"library/internal/kafka"
 	"library/internal/models"
 	"library/logger"
@@ -432,5 +433,72 @@ func ModifyingBook(db *gorm.DB) gin.HandlerFunc {
 			"message": "Book changed successfully!",
 			"title":   book.Title,
 		})
+	}
+}
+
+// SearchBooks возвращает информацию о книгах со схожим названием или описанием
+// @Summary      Outputs an array of books
+// @Description  Returns an array of books that are similar in name or description to the request
+// @Tags         book
+// @Accept       json
+// @Produce      json
+// @Param 	search query string false "Looking for a similar book"
+// @Success      200     {object} models.Book
+// @Failure      400     {object} map[string]string
+// @Failure      404     {object} map[string]string
+// @Failure      500     {object} map[string]string
+// @Router       /SearchBooks [get]
+func SearchBooksHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		searchString := c.Query("search")
+		similarity := 0.1 // Порог схожести
+
+		books, err := database.SearchBooks(db, searchString, similarity)
+		if err != nil {
+			logger.ErrorLog.Println("Failed to search books\tError:", err)
+		}
+
+		var response []struct {
+			ID            uint   `json:"id"`
+			Title         string `json:"title"`
+			Author        string `json:"author"`
+			PublishedYear string `json:"published_year"`
+			Genres        []struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			} `json:"genres"`
+		}
+
+		for _, book := range books {
+			bookResponse := struct {
+				ID            uint   `json:"id"`
+				Title         string `json:"title"`
+				Author        string `json:"author"`
+				PublishedYear string `json:"published_year"`
+				Genres        []struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				} `json:"genres"`
+			}{
+				ID:            book.ID,
+				Title:         book.Title,
+				Author:        book.Author,
+				PublishedYear: book.PublishedYear,
+			}
+
+			// Формируем список жанров
+			for _, genre := range book.Genres {
+				bookResponse.Genres = append(bookResponse.Genres, struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				}{
+					ID:   genre.ID,
+					Name: genre.Name,
+				})
+			}
+			response = append(response, bookResponse)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"books": response})
 	}
 }

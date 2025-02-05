@@ -151,6 +151,45 @@ paths:
       summary: Show start page
       tags:
       - book
+  /SearchBooks:
+    get:
+      consumes:
+      - application/json
+      description: Returns an array of books that are similar in name or description
+        to the request
+      parameters:
+      - description: Looking for a similar book
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Book'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Outputs an array of books
+      tags:
+      - book
   /addBook:
     post:
       consumes:

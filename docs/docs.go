@@ -41,6 +41,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/SearchBooks": {
+            "get": {
+                "description": "Returns an array of books that are similar in name or description to the request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "book"
+                ],
+                "summary": "Outputs an array of books",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Looking for a similar book",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Book"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/addBook": {
             "post": {
                 "description": "JWT authentication via cookie only for admin.\nThe JWT token should be stored in a cookie named \"jwt\".",

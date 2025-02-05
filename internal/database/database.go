@@ -45,6 +45,30 @@ func ConnectDatabase() error {
 	return nil
 }
 
+func CreateTrgmIndexes(db *gorm.DB) error {
+	if err := db.Exec("CREATE INDEX IF NOT EXISTS idx_books_title_trgm ON books USING GIN (title gin_trgm_ops);").Error; err != nil {
+		return err
+	}
+	if err := db.Exec("CREATE INDEX IF NOT EXISTS idx_books_description_trgm ON books USING GIN (description gin_trgm_ops);").Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// Поиск книг
+func SearchBooks(db *gorm.DB, searchString string, similarity float64) ([]models.Book, error) {
+	var books []models.Book
+	if err := db.Preload("Genres").
+		Where("similarity(lower(title), lower(?)) > ?", searchString, similarity).
+		Or("similarity(lower(description), lower(?)) > ?", searchString, similarity).
+		Or("lower(title) LIKE lower(?)", "%"+searchString+"%").
+		Find(&books).Error; err != nil {
+		return nil, err
+	}
+
+	return books, nil
+}
+
 func InitTestDB() {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
