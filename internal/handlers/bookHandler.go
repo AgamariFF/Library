@@ -7,8 +7,9 @@ import (
 	"library/internal/kafka"
 	"library/internal/models"
 	"library/logger"
+	"math"
 	"net/http"
-	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -56,57 +57,85 @@ func Welcome(c *gin.Context) {
 	})
 }
 
-// GetBooks возвращает отсортированный или неотсортированный список книг
+// GetBooks возвращает отсортированный или неотсортированный список книг с пагинацией
 // @Summary Get list of books
 // @Description Retrieve all books, optionally sorted by a specific field
 // @Tags book
 // @Accept json
 // @Produce json
-// @Param sort query string false "Field to sort by (e.g., 'id')"
-// @Success 200 {array} models.Book
+// @Param sort query string false "Field to sort by (e.g., 'title', 'author', 'published_year')"
+// @Param page query int false "Page number for pagination (default: 1)"
+// @Param limit query int false "Number of books per page (default: 10)"
+// @Success 200 {object} map[string]interface{} "Returns a paginated and sorted list of books"
 // @Failure 500 {object} map[string]string
 // @Router /getBooks [get]
 func GetBooks(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var books []models.Book
-		var response []struct {
-			ID            uint   `json:"id"`
-			Title         string `json:"title"`
-			Author        string `json:"author"`
-			PublishedYear string `json:"published_year"`
-			Genres        []struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
-			} `json:"genres"`
+		var response struct {
+			Page       int `json:"page"`
+			Limit      int `json:"limit"`
+			TotalBooks int `json:"total_books"`
+			TotalPages int `json:"total_pages"`
+			Books      []struct {
+				ID            uint   `json:"id"`
+				Title         string `json:"title"`
+				Author        string `json:"author"`
+				PublishedYear string `json:"published_year"`
+				Genres        []struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				} `json:"genres"`
+			} `json:"books"`
 		}
 		// Извлечение query-параметров
+
+		page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+		if err != nil {
+			logger.ErrorLog.Println("Failed Atoi page\tError:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid page"})
+		}
+		limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+		if err != nil {
+			logger.ErrorLog.Println("Failed Atoi limit\tError:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid limit"})
+		}
 		sortParam := c.Query("sort")
 
+		offset := (page - 1) * limit
+
+		var totalBooks int64
+		db.Model(&models.Book{}).Count(&totalBooks)
+
+		totalPages := int(math.Ceil(float64(totalBooks) / float64(limit)))
+
 		// Получаем все книги из БД
-		if err := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
+		query := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
 			return db.Select("genres.id, genres.name") // Выбираем только нужные поля
-		}).Find(&books).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Unable to get books",
-			})
-			return
-		}
+		})
 
 		// Сортируем книги
 		switch sortParam {
 		case "author":
-			sort.Slice(books, func(i, j int) bool {
-				return books[i].Author < books[j].Author
-			})
+			query = query.Order("author")
 		case "title":
-			sort.Slice(books, func(i, j int) bool {
-				return books[i].Title < books[j].Title
-			})
+			query = query.Order("title")
 		case "year":
-			sort.Slice(books, func(i, j int) bool {
-				return books[i].PublishedYear < books[j].PublishedYear
-			})
+			query = query.Order("published_year")
+		default:
+			query = query.Order("id")
 		}
+
+		query = query.Offset(offset).Limit(limit)
+
+		if err = query.Find(&books).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get books"})
+		}
+
+		response.Page = page
+		response.Limit = limit
+		response.TotalBooks = int(totalBooks)
+		response.TotalPages = totalPages
 
 		// Формируем ответ
 		for _, book := range books {
@@ -136,7 +165,7 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 					Name: genre.Name,
 				})
 			}
-			response = append(response, bookResponse)
+			response.Books = append(response.Books, bookResponse)
 		}
 		// Возврат ответа
 		c.JSON(http.StatusOK, response)
