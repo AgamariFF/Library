@@ -3,6 +3,7 @@ package main
 import (
 	config "library/configs"
 	_ "library/docs"
+	"library/internal/cache"
 	"library/internal/database"
 	"library/internal/handlers"
 	"library/logger"
@@ -37,6 +38,8 @@ func main() {
 		logger.ErrorLog.Println("Failed connect to database with retry: " + err.Error())
 	}
 	time.Sleep(5 * time.Second)
+
+	cache.InitRedis()
 
 	if err := database.Migrate(); err != nil {
 		logger.ErrorLog.Panicln("Failed to migrate database: " + err.Error())

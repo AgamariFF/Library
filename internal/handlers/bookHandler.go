@@ -43,6 +43,24 @@ type DeleteBookRequest struct {
 	ID uint `json:"id" example:"1" binding:"required"`
 }
 
+// ResponseGetBooks структура ответа при GET запросе /getBooks
+type ResponseGetBooks struct {
+			Page       int `json:"page"`
+			Limit      int `json:"limit"`
+			TotalBooks int `json:"total_books"`
+			TotalPages int `json:"total_pages"`
+			Books      []struct {
+				ID            uint   `json:"id"`
+				Title         string `json:"title"`
+				Author        string `json:"author"`
+				PublishedYear string `json:"published_year"`
+				Genres        []struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				} `json:"genres"`
+			} `json:"books"`
+		}
+
 // Welcome отображает главную страницу
 // @Summary Show start page
 // @Description Show the start page of the API
@@ -72,23 +90,7 @@ func Welcome(c *gin.Context) {
 func GetBooks(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var books []models.Book
-		var response struct {
-			Page       int `json:"page"`
-			Limit      int `json:"limit"`
-			TotalBooks int `json:"total_books"`
-			TotalPages int `json:"total_pages"`
-			Books      []struct {
-				ID            uint   `json:"id"`
-				Title         string `json:"title"`
-				Author        string `json:"author"`
-				PublishedYear string `json:"published_year"`
-				Genres        []struct {
-					ID   uint   `json:"id"`
-					Name string `json:"name"`
-				} `json:"genres"`
-			} `json:"books"`
-		}
-		// Извлечение query-параметров
+		var response ResponseGetBooks
 
 		page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 		if err != nil {
@@ -109,12 +111,11 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 
 		totalPages := int(math.Ceil(float64(totalBooks) / float64(limit)))
 
-		// Получаем все книги из БД
+
 		query := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
 			return db.Select("genres.id, genres.name") // Выбираем только нужные поля
 		})
 
-		// Сортируем книги
 		switch sortParam {
 		case "author":
 			query = query.Order("author")
@@ -167,7 +168,6 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 			}
 			response.Books = append(response.Books, bookResponse)
 		}
-		// Возврат ответа
 		c.JSON(http.StatusOK, response)
 	}
 }
