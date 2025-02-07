@@ -297,7 +297,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Field to sort by (e.g., 'title', 'author', 'published_year')",
+                        "description": "Field to sort by (e.g., 'title', 'author', 'published_year')(default: ` + "`" + `id` + "`" + `)",
                         "name": "sort",
                         "in": "query"
                     },

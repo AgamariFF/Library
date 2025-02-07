@@ -34,3 +34,25 @@ type User struct {
 	RefreshToken string    `gorm:"not null" json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
 }
+
+type GenreFroGetBooks struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
+type BookForGetBooks struct {
+	ID            uint               `json:"id"`
+	Title         string             `json:"title"`
+	Author        string             `json:"author"`
+	PublishedYear string             `json:"published_year"`
+	Genres        []GenreFroGetBooks `json:"genres"`
+}
+
+// ResponseGetBooks структура ответа при GET запросе /getBooks
+type ResponseGetBooks struct {
+	Page       int               `json:"page"`
+	Limit      int               `json:"limit"`
+	TotalBooks int               `json:"total_books"`
+	TotalPages int               `json:"total_pages"`
+	Books      []BookForGetBooks `json:"books"`
+}

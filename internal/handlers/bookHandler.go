@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"library/internal/cache"
 	"library/internal/database"
 	"library/internal/kafka"
 	"library/internal/models"
@@ -43,24 +44,6 @@ type DeleteBookRequest struct {
 	ID uint `json:"id" example:"1" binding:"required"`
 }
 
-// ResponseGetBooks структура ответа при GET запросе /getBooks
-type ResponseGetBooks struct {
-	Page       int `json:"page"`
-	Limit      int `json:"limit"`
-	TotalBooks int `json:"total_books"`
-	TotalPages int `json:"total_pages"`
-	Books      []struct {
-		ID            uint   `json:"id"`
-		Title         string `json:"title"`
-		Author        string `json:"author"`
-		PublishedYear string `json:"published_year"`
-		Genres        []struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
-		} `json:"genres"`
-	} `json:"books"`
-}
-
 // Welcome отображает главную страницу
 // @Summary Show start page
 // @Description Show the start page of the API
@@ -81,7 +64,7 @@ func Welcome(c *gin.Context) {
 // @Tags book
 // @Accept json
 // @Produce json
-// @Param sort query string false "Field to sort by (e.g., 'title', 'author', 'published_year')"
+// @Param sort query string false "Field to sort by (e.g., 'title', 'author', 'published_year')(default: `id`)"
 // @Param page query int false "Page number for pagination (default: 1)"
 // @Param limit query int false "Number of books per page (default: 10)"
 // @Success 200 {object} map[string]interface{} "Returns a paginated and sorted list of books"
@@ -89,84 +72,13 @@ func Welcome(c *gin.Context) {
 // @Router /getBooks [get]
 func GetBooks(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var books []models.Book
-		var response ResponseGetBooks
+		var response models.ResponseGetBooks
 
-		page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+		response, err := cache.CheckCacheGetBooks(c.DefaultQuery("page", "1"), c.DefaultQuery("limit", "10"), c.DefaultQuery("sort", "id"), db)
 		if err != nil {
-			logger.ErrorLog.Println("Failed Atoi page\tError:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid page"})
-		}
-		limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
-		if err != nil {
-			logger.ErrorLog.Println("Failed Atoi limit\tError:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid limit"})
-		}
-		sortParam := c.Query("sort")
-
-		offset := (page - 1) * limit
-
-		var totalBooks int64
-		db.Model(&models.Book{}).Count(&totalBooks)
-
-		totalPages := int(math.Ceil(float64(totalBooks) / float64(limit)))
-
-		query := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
-			return db.Select("genres.id, genres.name") // Выбираем только нужные поля
-		})
-
-		switch sortParam {
-		case "author":
-			query = query.Order("author")
-		case "title":
-			query = query.Order("title")
-		case "year":
-			query = query.Order("published_year")
-		default:
-			query = query.Order("id")
+			logger.ErrorLog.Println("Failed check cache, when /getBooks\tError:", err)
 		}
 
-		query = query.Offset(offset).Limit(limit)
-
-		if err = query.Find(&books).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get books"})
-		}
-
-		response.Page = page
-		response.Limit = limit
-		response.TotalBooks = int(totalBooks)
-		response.TotalPages = totalPages
-
-		// Формируем ответ
-		for _, book := range books {
-			bookResponse := struct {
-				ID            uint   `json:"id"`
-				Title         string `json:"title"`
-				Author        string `json:"author"`
-				PublishedYear string `json:"published_year"`
-				Genres        []struct {
-					ID   uint   `json:"id"`
-					Name string `json:"name"`
-				} `json:"genres"`
-			}{
-				ID:            book.ID,
-				Title:         book.Title,
-				Author:        book.Author,
-				PublishedYear: book.PublishedYear,
-			}
-
-			// Формируем список жанров
-			for _, genre := range book.Genres {
-				bookResponse.Genres = append(bookResponse.Genres, struct {
-					ID   uint   `json:"id"`
-					Name string `json:"name"`
-				}{
-					ID:   genre.ID,
-					Name: genre.Name,
-				})
-			}
-			response.Books = append(response.Books, bookResponse)
-		}
 		c.JSON(http.StatusOK, response)
 	}
 }
@@ -307,6 +219,7 @@ func AddBook(db *gorm.DB, producer *kafka.KafkaProducer) gin.HandlerFunc {
 			logger.InfoLog.Println("Sending the event to kafka was successful")
 		}
 
+		cache.ClearCache()
 		// Успешный ответ
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Book added successully!",
@@ -362,6 +275,7 @@ func DeleteBook(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete book", "details": err.Error()})
 			return
 		}
+		cache.ClearCache()
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Book deleted successully!",
@@ -455,6 +369,7 @@ func ModifyingBook(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		cache.ClearCache()
 
 		// Успешный ответ
 		c.JSON(http.StatusOK, gin.H{
