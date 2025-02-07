@@ -472,31 +472,59 @@ func ModifyingBook(db *gorm.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param 	search query string false "Looking for a similar book"
-// @Success      200     {object} models.Book
+// @Param page query int false "Page number for pagination (default: 1)"
+// @Param limit query int false "Number of books per page (default: 10)"
+// @Success 200 {object} map[string]interface{} "Returns a paginated and sorted list of books"
 // @Failure      400     {object} map[string]string
 // @Failure      404     {object} map[string]string
-// @Failure      500     {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router       /SearchBooks [get]
 func SearchBooksHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var response struct {
+			Page       int `json:"page"`
+			Limit      int `json:"limit"`
+			TotalBooks int `json:"total_books"`
+			TotalPages int `json:"total_pages"`
+			Books      []struct {
+				ID            uint   `json:"id"`
+				Title         string `json:"title"`
+				Author        string `json:"author"`
+				PublishedYear string `json:"published_year"`
+				Genres        []struct {
+					ID   uint   `json:"id"`
+					Name string `json:"name"`
+				} `json:"genres"`
+			} `json:"books"`
+		}
+
+		page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+		if err != nil {
+			logger.ErrorLog.Println("Failed Atoi page\tError:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid page"})
+		}
+		limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+		if err != nil {
+			logger.ErrorLog.Println("Failed Atoi limit\tError:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid limit"})
+		}
 		searchString := c.Query("search")
+
+		offset := (page - 1) * limit
+
+		var totalBooks int
+
 		similarity := 0.1 // Порог схожести
 
-		books, err := database.SearchBooks(db, searchString, similarity)
+		books, totalBooks, err := database.SearchBooks(db, searchString, similarity, offset, limit)
 		if err != nil {
 			logger.ErrorLog.Println("Failed to search books\tError:", err)
 		}
 
-		var response []struct {
-			ID            uint   `json:"id"`
-			Title         string `json:"title"`
-			Author        string `json:"author"`
-			PublishedYear string `json:"published_year"`
-			Genres        []struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
-			} `json:"genres"`
-		}
+		response.Limit = limit
+		response.Page = page
+		response.TotalBooks = totalBooks
+		response.TotalPages = int(math.Ceil(float64(totalBooks) / float64(limit)))
 
 		for _, book := range books {
 			bookResponse := struct {
@@ -525,7 +553,7 @@ func SearchBooksHandler(db *gorm.DB) gin.HandlerFunc {
 					Name: genre.Name,
 				})
 			}
-			response = append(response, bookResponse)
+			response.Books = append(response.Books, bookResponse)
 		}
 
 		c.JSON(http.StatusOK, gin.H{"books": response})

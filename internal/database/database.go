@@ -56,17 +56,24 @@ func CreateTrgmIndexes(db *gorm.DB) error {
 }
 
 // Поиск книг
-func SearchBooks(db *gorm.DB, searchString string, similarity float64) ([]models.Book, error) {
+func SearchBooks(db *gorm.DB, searchString string, similarity float64, offset, limit int) ([]models.Book, int, error) {
 	var books []models.Book
-	if err := db.Preload("Genres").
+	query := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
+		return db.Select("genres.id, genres.name")
+	}).
 		Where("similarity(lower(title), lower(?)) > ?", searchString, similarity).
 		Or("similarity(lower(description), lower(?)) > ?", searchString, similarity).
-		Or("lower(title) LIKE lower(?)", "%"+searchString+"%").
-		Find(&books).Error; err != nil {
-		return nil, err
+		Or("lower(title) LIKE lower(?)", "%"+searchString+"%")
+	var totalBooks int64
+	if err := query.Model(&models.Book{}).Count(&totalBooks).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return books, nil
+	if err := query.Offset(offset).Limit(limit).Find(&books).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return books, int(totalBooks), nil
 }
 
 func InitTestDB() {

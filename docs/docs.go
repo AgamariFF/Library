@@ -60,13 +60,26 @@ const docTemplate = `{
                         "description": "Looking for a similar book",
                         "name": "search",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number for pagination (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of books per page (default: 10)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Returns a paginated and sorted list of books",
                         "schema": {
-                            "$ref": "#/definitions/models.Book"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
