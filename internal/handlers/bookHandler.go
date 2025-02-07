@@ -45,21 +45,21 @@ type DeleteBookRequest struct {
 
 // ResponseGetBooks структура ответа при GET запросе /getBooks
 type ResponseGetBooks struct {
-			Page       int `json:"page"`
-			Limit      int `json:"limit"`
-			TotalBooks int `json:"total_books"`
-			TotalPages int `json:"total_pages"`
-			Books      []struct {
-				ID            uint   `json:"id"`
-				Title         string `json:"title"`
-				Author        string `json:"author"`
-				PublishedYear string `json:"published_year"`
-				Genres        []struct {
-					ID   uint   `json:"id"`
-					Name string `json:"name"`
-				} `json:"genres"`
-			} `json:"books"`
-		}
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalBooks int `json:"total_books"`
+	TotalPages int `json:"total_pages"`
+	Books      []struct {
+		ID            uint   `json:"id"`
+		Title         string `json:"title"`
+		Author        string `json:"author"`
+		PublishedYear string `json:"published_year"`
+		Genres        []struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		} `json:"genres"`
+	} `json:"books"`
+}
 
 // Welcome отображает главную страницу
 // @Summary Show start page
@@ -110,7 +110,6 @@ func GetBooks(db *gorm.DB) gin.HandlerFunc {
 		db.Model(&models.Book{}).Count(&totalBooks)
 
 		totalPages := int(math.Ceil(float64(totalBooks) / float64(limit)))
-
 
 		query := db.Preload("Genres", func(db *gorm.DB) *gorm.DB {
 			return db.Select("genres.id, genres.name") // Выбираем только нужные поля
